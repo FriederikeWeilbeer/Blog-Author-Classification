@@ -15,11 +15,14 @@ def main():
     Main function
     """
     now = time.time()
-    data = import_data(FILE_PATH, COMPLETE_DATA_LENGTH)
+    data = import_data(FILE_PATH, 5000)
 
     print(data['text'].apply(len).mean())
     data = preprocess_data_multiprocessing(data)
     print(data['text'].apply(len).mean())
+
+    data = prepare_data_with_label(data, "age")
+    print(data)
 
     print(f'Execution took {time.time() - now:.2f} seconds', )
 
@@ -83,9 +86,23 @@ def preprocess_data_multiprocessing(data_frame):
     # create pool with cpu_count amount of threads
     with mp.Pool(cpu_count) as p:
 
-        # concat the split dataframes to a result dataframe and apply prepare_data on every split dataframe
+        # concat the split dataframes to a result dataframe and apply preprocess_data function on every split dataframe
         df = pd.concat(p.map(preprocess_data, df_split))
     return df
+
+
+def prepare_data_with_label(data_frame, column):
+    """
+    function for preparing data
+    by creating a dataframe with text and labels as columns
+
+    :param data_frame: a pandas dataframe
+    :param column: the column name with the values
+    :return: a dataframe with text and labels
+    """
+    result_data_frame = data_frame[["text", column]].copy()
+    result_data_frame.columns = ['text', 'label']
+    return result_data_frame
 
 
 FILE_PATH = "assets/blogtext.csv"
