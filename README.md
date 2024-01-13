@@ -9,3 +9,4 @@ Paste the following code snippets in a python console
   - nltk.download("stopwords")
 - numpy (!pip install -U numpy)
 - pandas (!pip install -U pandas)
+- seaborn (!pip install seaborn)
