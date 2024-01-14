@@ -61,6 +61,11 @@ def import_data(file_path, rows):
 
 
 def analyse_distribution(data_frame):
+    """
+    Function for analysing the distribution of data within a data frame
+
+    :param data_frame: a pandas dataframe
+    """
     columns = [col for col in data_frame.columns.tolist() if col not in ['text', 'id', 'date']]
     print(columns)
     for column in columns:
@@ -68,6 +73,12 @@ def analyse_distribution(data_frame):
 
 
 def build_distribution_function(data_frame, column):
+    """
+    Function for plotting a distribution function for columns within a data frame
+
+    :param data_frame: a pandas data frame
+    :param column: column to be examined
+    """
     freq = FreqDist(np.array([x for x in data_frame[column]]).ravel())
 
     # Plot histogram
@@ -157,6 +168,7 @@ def prepare_data_with_label(data_frame, column):
 def split_training_data(data_frame):
     """
     Function for splitting data into training and testing sets
+
     :param data_frame: a pandas dataframe
     :return: xtrain, xtest, ytrain, ytest
     """
@@ -168,6 +180,7 @@ def split_training_data(data_frame):
 def train_model(x_train, y_train):
     """
     Function for training the model with LogisticRegression
+
     :param x_train: a pandas dataframe
     :param y_train: a pandas dataframe
     :return: xtrain, xtest, ytrain, ytest
@@ -178,6 +191,13 @@ def train_model(x_train, y_train):
 
 
 def evaluate_model(model, x_test, y_test):
+    """
+    Function for evaluating the model using multiple score, such as Recall, Precision and F1-Score
+
+    :param model:
+    :param x_test:
+    :param y_test:
+    """
     right = 0
     wrong = 0
     y_pred = model.predict(x_test)
