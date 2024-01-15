@@ -36,6 +36,8 @@ def main():
     """
 
     log("Start")
+
+    # Change the configuration here
     training_pipeline("gender",
                       COMPLETE_DATA_LENGTH,
                       test_split_percentage=0.3,
@@ -71,7 +73,11 @@ def training_pipeline(column,
     """
 
     # get the state of the method parameters, used for saving the trained model later
-    state = str(locals())
+    state_vars = locals()
+    state_vars.pop("overwrite")
+    state_vars.pop("evaluate")
+    state_vars.pop("evaluate_dist")
+    state = state_vars
 
     # Step 1: Import data
     data = import_data(FILE_PATH, max_rows)
@@ -336,7 +342,7 @@ def train_model(x_train, y_train, state_string, overwrite):
     model = make_pipeline(TfidfVectorizer(), LogisticRegression(max_iter=1000))
 
     # Generate String representing the configuration of the model
-    pipeline_str = repr(model) + state_string
+    pipeline_str = repr(model) + str(state_string)
 
     # Calculate the hash value out of model state for the model name
     # used to load and save models with the same state
@@ -395,7 +401,7 @@ def evaluate_model(model, x_test, y_test):
     plt.ylabel('True Labels')
 
     # save the heatmap to a file
-    heatmap.get_figure().savefig('confusion_matrix_heatmap.png', bbox_inches='tight')
+    heatmap.get_figure().savefig('graphs/' + 'confusion_matrix_heatmap.png', bbox_inches='tight')
     plt.close()
 
     log("Finished evaluating the model")
