@@ -10,3 +10,4 @@ Paste the following code snippets in a python console
 - numpy (!pip install -U numpy)
 - pandas (!pip install -U pandas)
 - seaborn (!pip install seaborn)
+- flask (!pip install flask)

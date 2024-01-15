@@ -25,6 +25,10 @@ import seaborn as sns
 
 from nltk.probability import FreqDist
 
+from nltk.stem import WordNetLemmatizer
+
+lemmatizer = WordNetLemmatizer()
+
 STOP_WORDS = set(stopwords.words('english'))
 START_TIME = time.time()
 LAST_STAMP = time.time()
@@ -43,9 +47,10 @@ def main():
                       test_split_percentage=0.3,
                       shuffle=True,
                       shuffle_state=RANDOM_STATE,
-                      evaluate=True,
-                      evaluate_dist=True,
-                      overwrite=False)
+                      evaluate=False,
+                      evaluate_dist=False,
+                      generate_model=False,
+                      overwrite=True)
 
     log("Finished program")
 
@@ -57,6 +62,7 @@ def training_pipeline(column,
                       shuffle_state=random.randint(10000, 20000),
                       evaluate=False,
                       evaluate_dist=False,
+                      generate_model=False,
                       overwrite=True
                       ):
     """
@@ -69,6 +75,7 @@ def training_pipeline(column,
     :param shuffle_state: state to reproducing the shuffle process
     :param evaluate: flag if the model should be evaluated (default: False)
     :param evaluate_dist: flag if a distribution should be generated (default: False)
+    :param generate_model: flag if a model output should be generated (default: False)
     :param overwrite: flag for overwriting existing data (default: True)
     """
 
@@ -77,6 +84,7 @@ def training_pipeline(column,
     state_vars.pop("overwrite")
     state_vars.pop("evaluate")
     state_vars.pop("evaluate_dist")
+    state_vars.pop("generate_model")
     state = state_vars
 
     # Step 1: Import data
@@ -96,7 +104,7 @@ def training_pipeline(column,
     xtrain, xtest, ytrain, ytest = split_training_data(data, test_split_percentage, shuffle_state, shuffle)
 
     # Step 5: Train Model
-    model = train_model(xtrain, ytrain, state, overwrite)
+    model = train_model(xtrain, ytrain, state, generate_model, overwrite)
 
     # Step 6: Evaluate Model
     if evaluate:
@@ -235,7 +243,7 @@ def clean_text(text):
 
     # Remove stopwords
     tokens = word_tokenize(text)
-    tokens = [w for w in tokens if w not in STOP_WORDS]
+    tokens = [lemmatizer.lemmatize(w) for w in tokens if w not in STOP_WORDS]
     return ' '.join(tokens)
 
 
@@ -329,13 +337,14 @@ def split_training_data(data_frame, test_split_percentage, shuffle_state, shuffl
                             random_state=shuffle_state, shuffle=shuffle)
 
 
-def train_model(x_train, y_train, state_string, overwrite):
+def train_model(x_train, y_train, state_string, generate_model, overwrite):
     """
     Function for training the model with LogisticRegression
 
     :param x_train: a pandas dataframe with all training data
     :param y_train: a pandas dataframe with all labels
     :param state_string: a string containing the state of the model
+    :param generate_model: a flag for saving the model to a file
     :param overwrite: a flag to overwrite existing models
     :return: xtrain, xtest, ytrain, ytest
     """
@@ -348,8 +357,11 @@ def train_model(x_train, y_train, state_string, overwrite):
     # used to load and save models with the same state
     hash_value = hashlib.sha256(pipeline_str.encode()).hexdigest()
 
+    # generate filename
+    file_name = state_string["column"] + "-" + str(state_string["max_rows"]) + "-" + hash_value
+
     # file path of the saved model
-    file_path = "serialized/" + hash_value + ".joblib"
+    file_path = "serialized/" + file_name + ".joblib"
 
     # if the model exists and overwrite is disabled
     if os.path.exists(file_path) and not overwrite:
@@ -359,6 +371,12 @@ def train_model(x_train, y_train, state_string, overwrite):
     else:
         model.fit(x_train, y_train)
         joblib.dump(model, file_path)
+
+    # export finished model to a file
+    if generate_model:
+        category = state_string["column"]
+        model_path = "models/" + category + ".joblib"
+        joblib.dump(model, model_path)
 
     log("Finished training the model")
     return model
