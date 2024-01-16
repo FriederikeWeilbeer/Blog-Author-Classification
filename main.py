@@ -10,25 +10,28 @@ import re
 import os
 import multiprocessing as mp
 
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
-from sklearn.pipeline import make_pipeline
-
 import random
 
 import joblib
-
-from sklearn.metrics import recall_score, precision_score, accuracy_score, f1_score, confusion_matrix
 
 import seaborn as sns
 
 from nltk.probability import FreqDist
 
 from nltk.stem import WordNetLemmatizer
+from sklearn.preprocessing import MinMaxScaler, MaxAbsScaler
 
 from util.PrintColors import PrintColors
 from util.Evaluation import Evaluation, ComparisonAttribute, EvaluationResult
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import make_pipeline
+from sklearn.metrics import recall_score, precision_score, accuracy_score, f1_score, confusion_matrix
+from sklearn.svm import SVC
+
 
 lemmatizer = WordNetLemmatizer()
 
@@ -61,52 +64,12 @@ def main():
     configurations = [
         {
             "column": "gender",
-            "max_rows": 1000,
-            "sklearn_steps": [TfidfVectorizer(), LogisticRegression(max_iter=1000)],
-            "test_split_percentage": 0.3,
-            "shuffle": False,
-            "shuffle_state": RANDOM_STATE,
-            "evaluate": True,
-            "evaluate_dist": False,
-            "generate_model": False,
-            "overwrite": True
+            "sklearn_steps": [TfidfVectorizer(),  MaxAbsScaler(), SVC(max_iter=1000, verbose=2)],
         },
         {
-            "column": "gender",
-            "max_rows": 1000,
-            "sklearn_steps": [TfidfVectorizer(), LogisticRegression(max_iter=1000)],
-            "test_split_percentage": 0.3,
-            "shuffle": True,
-            "shuffle_state": RANDOM_STATE,
-            "evaluate": True,
-            "evaluate_dist": False,
-            "generate_model": False,
-            "overwrite": True
-        },
-        {
-            "column": "gender",
-            "max_rows": 1000,
-            "sklearn_steps": [TfidfVectorizer(), LogisticRegression(max_iter=1000)],
-            "test_split_percentage": 0.3,
-            "shuffle": True,
-            "shuffle_state": RANDOM_STATE,
-            "evaluate": True,
-            "evaluate_dist": False,
-            "generate_model": False,
-            "overwrite": True
-        },
-        {
-            "column": "gender",
-            "max_rows": 1000,
-            "sklearn_steps": [TfidfVectorizer(), LogisticRegression(max_iter=1000)],
-            "test_split_percentage": 0.3,
-            "shuffle": True,
-            "shuffle_state": 45454,
-            "evaluate": True,
-            "evaluate_dist": True,
-            "generate_model": False,
-            "overwrite": True
-        }
+             "column": "gender",
+
+         }
     ]
 
     best_key, results = find_best_model(configurations)
@@ -117,15 +80,21 @@ def main():
     log(results[best_key], color=PrintColors.GREEN, exec_time=False)
 
     # start pipeline with configuration
-    #evaluation, states = training_pipeline(**configuration)
+    # evaluation, states = training_pipeline(**configuration)
 
-    #log(evaluation, color=PrintColors.CYAN, exec_time=False)
-    #log(states, color=PrintColors.CYAN, exec_time=False)
+    # log(evaluation, color=PrintColors.CYAN, exec_time=False)
+    # log(states, color=PrintColors.CYAN, exec_time=False)
 
     log("Finished program")
 
 
 def find_best_model(configurations, optimization=ComparisonAttribute.ABSOLUTE):
+    """
+    Function to find the best model configuration  using score evaluation and comparison
+
+    :param configurations: list of configurations
+    :param optimization: Comparison attribute for the evaluation (default: ComparisonAttribute.ABSOLUTE)
+    """
 
     default_config = {
         "column": "gender",
@@ -134,29 +103,43 @@ def find_best_model(configurations, optimization=ComparisonAttribute.ABSOLUTE):
         "test_split_percentage": 0.3,
         "shuffle": True,
         "shuffle_state": RANDOM_STATE,
+    }
+
+    fixed_values = {
         "evaluate": True,
         "evaluate_dist": False,
         "generate_model": False,
         "overwrite": True
     }
 
-    fixed_values = [
-        "evaluate",
-        "evaluate_dist",
-        "generate_model",
-        "overwrite"
-    ]
-
     results = dict()
 
+    # iterate over all configurations
     for i, config in enumerate(configurations):
+
+        # check if all config values are given, if not add them from the default configuration
         for key, value in default_config.items():
-            if key not in config.keys() or key in fixed_values:
+            if key not in config.keys():
                 config[key] = value
 
+        # add all fixed configuration values to the config
+        for key, value in fixed_values.items():
+            config[key] = value
+
+        # call training pipeline with configuration
+        # ** is used to convert the dict into multiple params, which the training_pipeline() method requires
+        # the output of training_pipeline() is an Evaluation Object and the state
+        # a EvaluationResult is generated by passing the output of training_pipeline()
+        # and converting it to two parameters of the EvaluationResult constructor with the * operator
         result = EvaluationResult(*training_pipeline(**config))
+
+        # log the Evaluation Result
         log("\n" + str(result) + "\n", color=PrintColors.CYAN, exec_time=False)
+
+        # change the compare attribute for comparing evaluations
         result.evaluation.comp_attr = optimization
+
+        # add to result list
         results[i] = result
         log(f'Finished Model with state: {result.state}', color=PrintColors.BLUE)
 
@@ -380,7 +363,7 @@ def clean_text(text):
 
     # Remove stopwords
     tokens = word_tokenize(text)
-    tokens = [lemmatizer.lemmatize(w) for w in tokens if w not in STOP_WORDS]
+    tokens = [w for w in tokens if w not in STOP_WORDS]
     return ' '.join(tokens)
 
 
@@ -486,6 +469,7 @@ def train_model(sklearn_steps, x_train, y_train, state, generate_model, overwrit
     :param overwrite: a flag to overwrite existing models
     :return: xtrain, xtest, ytrain, ytest
     """
+
     model = make_pipeline(*sklearn_steps)
 
     # Generate String representing the configuration of the model
