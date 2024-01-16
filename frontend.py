@@ -6,7 +6,6 @@ import main
 
 app = Flask(__name__)
 
-
 @app.route('/')
 def index():
 	return render_template("index.html", result="", probabilities=dict(), model_option="", status_code=1)
@@ -16,7 +15,7 @@ def index():
 def process():
 
 	if request.method == "POST":
-		result_available = True
+
 		raw_text = request.form["rawtext"]
 		model_option = request.form["model_option"]
 
@@ -40,12 +39,10 @@ def process():
 			return render_template("index.html", result="", probabilities=dict(), model_option="",
 								   status_code=2)
 
-
-
 	else:
 		redirect("/", code=302)
 
-		return render_template("index.html", result="", probabilities=dict(), model_option="", status_code=status_code)
+		return render_template("index.html", result="", probabilities=dict(), model_option="", status_code=1)
 
 
 if __name__ == '__main__':

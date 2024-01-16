@@ -27,6 +27,9 @@ from nltk.probability import FreqDist
 
 from nltk.stem import WordNetLemmatizer
 
+from util.PrintColors import PrintColors
+from util.Evaluation import Evaluation
+
 lemmatizer = WordNetLemmatizer()
 
 STOP_WORDS = set(stopwords.words('english'))
@@ -41,22 +44,126 @@ def main():
 
     log("Start")
 
-    # Change the configuration here
-    training_pipeline("gender",
-                      COMPLETE_DATA_LENGTH,
-                      test_split_percentage=0.3,
-                      shuffle=True,
-                      shuffle_state=RANDOM_STATE,
-                      evaluate=False,
-                      evaluate_dist=False,
-                      generate_model=False,
-                      overwrite=True)
+    # Change the configuration here, you can also generate configurations as a dict
+    configuration = {
+        "column": "gender",
+        "max_rows": 1000,
+        "sklearn_steps": [TfidfVectorizer(), LogisticRegression(max_iter=1000)],
+        "test_split_percentage": 0.3,
+        "shuffle": True,
+        "shuffle_state": RANDOM_STATE,
+        "evaluate": True,
+        "evaluate_dist": True,
+        "generate_model": False,
+        "overwrite": True
+    }
+
+    configurations = [
+        {
+            "column": "gender",
+            "max_rows": 1000,
+            "sklearn_steps": [TfidfVectorizer(), LogisticRegression(max_iter=1000)],
+            "test_split_percentage": 0.3,
+            "shuffle": False,
+            "shuffle_state": RANDOM_STATE,
+            "evaluate": True,
+            "evaluate_dist": False,
+            "generate_model": False,
+            "overwrite": True
+        },
+        {
+            "column": "gender",
+            "max_rows": 1000,
+            "sklearn_steps": [TfidfVectorizer(), LogisticRegression(max_iter=1000)],
+            "test_split_percentage": 0.3,
+            "shuffle": True,
+            "shuffle_state": RANDOM_STATE,
+            "evaluate": True,
+            "evaluate_dist": False,
+            "generate_model": False,
+            "overwrite": True
+        },
+        {
+            "column": "gender",
+            "max_rows": 1000,
+            "sklearn_steps": [TfidfVectorizer(), LogisticRegression(max_iter=1000)],
+            "test_split_percentage": 0.3,
+            "shuffle": True,
+            "shuffle_state": RANDOM_STATE,
+            "evaluate": True,
+            "evaluate_dist": False,
+            "generate_model": False,
+            "overwrite": True
+        },
+        {
+            "column": "gender",
+            "max_rows": 1000,
+            "sklearn_steps": [TfidfVectorizer(), LogisticRegression(max_iter=1000)],
+            "test_split_percentage": 0.3,
+            "shuffle": True,
+            "shuffle_state": 45454,
+            "evaluate": True,
+            "evaluate_dist": True,
+            "generate_model": False,
+            "overwrite": True
+        }
+    ]
+
+    best, results = find_best_model(configurations)
+
+    log(best[0], color=PrintColors.CYAN, exec_time=False)
+    log(best[1], color=PrintColors.CYAN, exec_time=False)
+
+    for evaluation, state in results.values():
+        log(evaluation, color=PrintColors.CYAN, exec_time=False)
+        log(state, color=PrintColors.CYAN, exec_time=False)
+
+    # start pipeline with configuration
+    #evaluation, states = training_pipeline(**configuration)
+
+    #log(evaluation, color=PrintColors.CYAN, exec_time=False)
+    #log(states, color=PrintColors.CYAN, exec_time=False)
 
     log("Finished program")
 
 
+def find_best_model(configurations):
+
+    default_config = {
+        "column": "gender",
+        "max_rows": COMPLETE_DATA_LENGTH,
+        "sklearn_steps": [TfidfVectorizer(), LogisticRegression(max_iter=1000)],
+        "test_split_percentage": 0.3,
+        "shuffle": True,
+        "shuffle_state": RANDOM_STATE,
+        "evaluate": True,
+        "evaluate_dist": False,
+        "generate_model": False,
+        "overwrite": True
+    }
+
+    fixed_values = [
+        "evaluate",
+        "evaluate_dist",
+        "generate_model",
+        "overwrite"
+    ]
+
+    results = dict()
+
+    for i, config in enumerate(configurations):
+        for key, value in default_config.items():
+            if key not in config.keys() or key in fixed_values:
+                config[key] = value
+
+        results[i] = training_pipeline(**config)
+
+    return results[max(results, key=lambda k: results[k][0])], results
+
+
 def training_pipeline(column,
                       max_rows,
+                      sklearn_steps,
                       test_split_percentage=0.3,
                       shuffle=False,
                       shuffle_state=random.randint(10000, 20000),
@@ -70,6 +177,7 @@ def training_pipeline(column,
 
     :param column: column of dataframe which should be trained
     :param max_rows: max rows for import
+    :param sklearn_steps: steps for the sklearn model pipeline
     :param test_split_percentage: percentage of test data
     :param shuffle: flag for shuffling data
     :param shuffle_state: state to reproducing the shuffle process
@@ -77,6 +185,7 @@ def training_pipeline(column,
     :param evaluate_dist: flag if a distribution should be generated (default: False)
     :param generate_model: flag if a model output should be generated (default: False)
     :param overwrite: flag for overwriting existing data (default: True)
+    :return: An Evaluation object for the training pipeline and the state or None if evaluate is False
     """
 
     # get the state of the method parameters, used for saving the trained model later
@@ -104,23 +213,49 @@ def training_pipeline(column,
     xtrain, xtest, ytrain, ytest = split_training_data(data, test_split_percentage, shuffle_state, shuffle)
 
     # Step 5: Train Model
-    model = train_model(xtrain, ytrain, state, generate_model, overwrite)
+    model = train_model(sklearn_steps, xtrain, ytrain, state, generate_model, overwrite)
 
     # Step 6: Evaluate Model
     if evaluate:
-        evaluate_model(model, xtest, ytest)
+        return evaluate_model(model, xtest, ytest), state
+    else:
+        return None
 
 
-def log(message):
+def printc(text, color=PrintColors.DEFAULT):
+    """
+    Function for printing a string in a color
+
+    :param text: string which will be printed
+    :param color: color of the text (default: PrintColors.DEFAULT)
+    """
+    print(f'{color}{text}{PrintColors.DEFAULT}')
+
+
+def log(message, color=PrintColors.DEFAULT, exec_time=True, current_time=True):
     """
     Function for logging a message with timestamp
 
     :param message: message for log entry
+    :param color: color of the message (default: PrintColors.DEFAULT)
+    :param exec_time: flag if execution time should be displayed (default: True)
+    :param current_time: flag if current time should be displayed (default: True)
     """
     global LAST_STAMP
 
+    lines = str(message).split('\n')
+
     if LOGGING:
-        print(f'[{time.strftime("%H:%M:%S", time.localtime())}]: {message}  -  Execution took {time.time() - LAST_STAMP:.2f}s. Total: {time.time()-START_TIME:.2f}s', )
+        for line in lines:
+            if exec_time and current_time:
+                printc(f'[{time.strftime("%H:%M:%S", time.localtime())}]: {line}  -  Execution took {time.time() - LAST_STAMP:.2f}s. Total: {time.time()-START_TIME:.2f}s', color=color)
+            elif exec_time and not current_time:
+                printc(f'{line}  -  Execution took {time.time() - LAST_STAMP:.2f}s. Total: {time.time()-START_TIME:.2f}s', color=color)
+            elif not exec_time and current_time:
+                printc(f'[{time.strftime("%H:%M:%S", time.localtime())}]: {line}', color=color)
+            elif not exec_time and not current_time:
+                printc(f'{line}', color=color)
+
     LAST_STAMP = time.time()
 
 
@@ -337,28 +472,29 @@ def split_training_data(data_frame, test_split_percentage, shuffle_state, shuffl
                             random_state=shuffle_state, shuffle=shuffle)
 
 
-def train_model(x_train, y_train, state_string, generate_model, overwrite):
+def train_model(sklearn_steps, x_train, y_train, state, generate_model, overwrite):
     """
     Function for training the model with LogisticRegression
 
+    :param sklearn_steps: steps for the sklearn model pipeline
     :param x_train: a pandas dataframe with all training data
     :param y_train: a pandas dataframe with all labels
-    :param state_string: a string containing the state of the model
+    :param state: a string containing the state of the model
     :param generate_model: a flag for saving the model to a file
     :param overwrite: a flag to overwrite existing models
     :return: xtrain, xtest, ytrain, ytest
     """
-    model = make_pipeline(TfidfVectorizer(), LogisticRegression(max_iter=1000))
+    model = make_pipeline(*sklearn_steps)
 
     # Generate String representing the configuration of the model
-    pipeline_str = repr(model) + str(state_string)
+    pipeline_str = str(state)
 
     # Calculate the hash value out of model state for the model name
     # used to load and save models with the same state
     hash_value = hashlib.sha256(pipeline_str.encode()).hexdigest()
 
     # generate filename
-    file_name = state_string["column"] + "-" + str(state_string["max_rows"]) + "-" + hash_value
+    file_name = state["column"] + "-" + str(state["max_rows"]) + "-" + hash_value
 
     # file path of the saved model
     file_path = "serialized/" + file_name + ".joblib"
@@ -374,7 +510,7 @@ def train_model(x_train, y_train, state_string, generate_model, overwrite):
 
     # export finished model to a file
     if generate_model:
-        category = state_string["column"]
+        category = state["column"]
         model_path = "models/" + category + ".joblib"
         joblib.dump(model, model_path)
 
@@ -389,6 +525,7 @@ def evaluate_model(model, x_test, y_test):
     :param model: a trained model
     :param x_test: the test values which should be predicted
     :param y_test: the correct labels of the test datat
+    :return: An Evaluation Object
     """
 
     y_pred = model.predict(x_test)
@@ -398,11 +535,10 @@ def evaluate_model(model, x_test, y_test):
     df["text"], df["correct"], df["prediction"] = x_test, y_test, y_pred
     df["right_prediction"] = np.where(df["correct"] == df["prediction"], 1, 0)
 
-    # print scores of the model
-    print("Accuracy: ", accuracy_score(y_test, y_pred))
-    print("Recall: ", recall_score(y_test, y_pred, average="macro"))
-    print("Precision: ", precision_score(y_test, y_pred, average="macro"))
-    print("F1-Score: ", f1_score(y_test, y_pred, average="macro"))
+    accuracy = accuracy_score(y_test, y_pred)
+    recall = recall_score(y_test, y_pred, average="macro")
+    precision = precision_score(y_test, y_pred, average="macro")
+    f1 = f1_score(y_test, y_pred, average="macro")
 
     # get labels of the data for plot
     unique_labels = sorted(set(y_test))
@@ -424,11 +560,26 @@ def evaluate_model(model, x_test, y_test):
 
     log("Finished evaluating the model")
 
+    return Evaluation(accuracy, recall, precision, f1)
+
 
 FILE_PATH = "assets/blogtext.csv"
 COMPLETE_DATA_LENGTH = 681284
 RANDOM_STATE = 41236451
 LOGGING = True
+
+DEFAULT_CONFIG = {
+        "column": "gender",
+        "max_rows": COMPLETE_DATA_LENGTH,
+        "sklearn_steps": [TfidfVectorizer(), LogisticRegression(max_iter=1000)],
+        "test_split_percentage": 0.3,
+        "shuffle": False,
+        "shuffle_state": RANDOM_STATE,
+        "evaluate": False,
+        "evaluate_dist": False,
+        "generate_model": False,
+        "overwrite": True
+    }
 
 # driver
 if __name__ == "__main__":
