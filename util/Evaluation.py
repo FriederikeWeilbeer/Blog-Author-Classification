@@ -8,6 +8,9 @@ class ComparisonAttribute(Enum):
     F1 = 'f1'
     ABSOLUTE = 'absolute'
 
+    def __str__(self):
+        return self.value
+
 
 class Evaluation:
 
@@ -73,3 +76,45 @@ class Evaluation:
         String building method.
         """
         return f'Accuracy: {self.accuracy} \nPrecision: {self.precision} \nRecall: {self.recall} \nF1: {self.f1}'
+
+
+class EvaluationResult:
+    def __init__(self, evaluation: Evaluation, state):
+        self.evaluation = evaluation
+        self.state = state
+
+    def __eq__(self, other):
+        if isinstance(other, EvaluationResult):
+            return self.evaluation == other.evaluation
+        return NotImplemented
+
+    def __ne__(self, other):
+        if isinstance(other, EvaluationResult):
+            return self.evaluation != other.evaluation
+        return NotImplemented
+
+    def __lt__(self, other):
+        if isinstance(other, EvaluationResult):
+            return self.evaluation < other.evaluation
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, EvaluationResult):
+            return self.evaluation <= other.evaluation
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, EvaluationResult):
+            return self.evaluation > other.evaluation
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, EvaluationResult):
+            return self.evaluation >= other.evaluation
+        return NotImplemented
+
+    def __str__(self):
+        """
+        String building method.
+        """
+        return f'Evaluation: \n{self.evaluation} \nState: \n{self.state}'

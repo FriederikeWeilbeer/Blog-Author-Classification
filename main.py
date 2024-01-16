@@ -28,7 +28,7 @@ from nltk.probability import FreqDist
 from nltk.stem import WordNetLemmatizer
 
 from util.PrintColors import PrintColors
-from util.Evaluation import Evaluation
+from util.Evaluation import Evaluation, ComparisonAttribute, EvaluationResult
 
 lemmatizer = WordNetLemmatizer()
 
@@ -109,14 +109,12 @@ def main():
         }
     ]
 
-    best, results = find_best_model(configurations)
+    best_key, results = find_best_model(configurations)
 
-    log(best[0], color=PrintColors.CYAN, exec_time=False)
-    log(best[1], color=PrintColors.CYAN, exec_time=False)
+    model_string = f'Best Model is: Model {best_key}'
 
-    for evaluation, state in results.values():
-        log(evaluation, color=PrintColors.CYAN, exec_time=False)
-        log(state, color=PrintColors.CYAN, exec_time=False)
+    log(model_string, color=PrintColors.GREEN, exec_time=False)
+    log(results[best_key], color=PrintColors.GREEN, exec_time=False)
 
     # start pipeline with configuration
     #evaluation, states = training_pipeline(**configuration)
@@ -127,7 +125,7 @@ def main():
     log("Finished program")
 
 
-def find_best_model(configurations):
+def find_best_model(configurations, optimization=ComparisonAttribute.ABSOLUTE):
 
     default_config = {
         "column": "gender",
@@ -156,9 +154,13 @@ def find_best_model(configurations):
             if key not in config.keys() or key in fixed_values:
                 config[key] = value
 
-        results[i] = training_pipeline(**config)
+        result = EvaluationResult(*training_pipeline(**config))
+        log("\n" + str(result) + "\n", color=PrintColors.CYAN, exec_time=False)
+        result.evaluation.comp_attr = optimization
+        results[i] = result
+        log(f'Finished Model with state: {result.state}', color=PrintColors.BLUE)
 
-    return results[max(results, key=lambda k: results[k][0])], results
+    return max(results, key=results.get), results
 
 
 def training_pipeline(column,
