@@ -11,4 +11,12 @@ Paste the following code snippets in a python console
 - pandas (!pip install -U pandas)
 - seaborn (!pip install seaborn)
 - flask (!pip install flask)
-- imbalanced-learn (!pip install -U imbalanced-learn)
+
+  !pip install -U scikit-learn
+  !pip install -U nltk
+  nltk.download("stopwords"
+  !pip install -U numpy
+  !pip install -U pandas
+  !pip install seaborn
+  !pip install flask
+  !pip install -U imbalanced-learn
