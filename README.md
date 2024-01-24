@@ -21,4 +21,4 @@ Paste the following code snippets in a python console
   !pip install -U pandas
   !pip install seaborn
   !pip install flask
-  !pip install scikit-learn-intelex
+  !pip install -U imbalanced-learn
