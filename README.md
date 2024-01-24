@@ -12,3 +12,13 @@ Paste the following code snippets in a python console
 - seaborn (!pip install seaborn)
 - flask (!pip install flask)
 - scikit-learn-intelex (!pip install scikit-learn-intelex) - speedup for intel processors
+
+
+  !pip install -U scikit-learn
+  !pip install -U nltk
+  nltk.download("stopwords"
+  !pip install -U numpy
+  !pip install -U pandas
+  !pip install seaborn
+  !pip install flask
+  !pip install scikit-learn-intelex
