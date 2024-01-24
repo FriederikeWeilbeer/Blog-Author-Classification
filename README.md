@@ -11,4 +11,4 @@ Paste the following code snippets in a python console
 - pandas (!pip install -U pandas)
 - seaborn (!pip install seaborn)
 - flask (!pip install flask)
-- scikit-learn-intelex (!pip install scikit-learn-intelex) - speedup for intel processors
+- imbalanced-learn (!pip install -U imbalanced-learn)
