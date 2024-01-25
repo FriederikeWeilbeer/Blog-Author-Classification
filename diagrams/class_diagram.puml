@@ -1,0 +1,33 @@
+@startuml
+!define ColorClass(color, className) class className #color
+!define ColorInterface(color, interfaceName) interface interfaceName #color
+
+ColorClass(LightYellow, main)
+ColorClass(LightGreen, find_best_model)
+ColorClass(LightGreen, preprocess_pipeline)
+ColorClass(LightGreen, training_pipeline)
+ColorClass(LightGreen, import_data)
+ColorClass(LightGreen, analyse_distribution)
+ColorClass(LightGreen, preprocess_data_multiprocessing)
+ColorClass(LightGreen, prepare_data_with_label)
+ColorClass(LightGreen, split_training_data)
+ColorClass(LightGreen, train_model)
+ColorClass(LightGreen, evaluate_model)
+
+main --> find_best_model
+main --> preprocess_pipeline
+main --> training_pipeline
+
+preprocess_pipeline --> import_data
+preprocess_pipeline --> preprocess_data_multiprocessing
+preprocess_pipeline --> analyse_distribution
+preprocess_pipeline --> prepare_data_with_label
+
+training_pipeline --> split_training_data
+training_pipeline --> train_model
+training_pipeline --> evaluate_model
+
+find_best_model --> preprocess_pipeline
+find_best_model --> training_pipeline
+
+@enduml

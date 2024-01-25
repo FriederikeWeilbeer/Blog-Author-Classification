@@ -1,0 +1,57 @@
+@startuml
+class Main {
+  +main()
+}
+
+class PreprocessPipeline {
+  +preprocess_pipeline(max_rows, column, evaluate_dist)
+}
+
+class TrainingPipeline {
+  +training_pipeline(data, column, max_rows, sklearn_steps, test_split_percentage, shuffle, shuffle_state, evaluate, evaluate_dist, generate_model, overwrite)
+}
+
+class Log {
+  +printc(text, color)
+  +log(message, color, exec_time, current_time)
+}
+
+class ImportData {
+  +import_data(file_path, rows)
+}
+
+class AnalyseDistribution {
+  +analyse_distribution(data_frame, columns)
+}
+
+class PreprocessDataMultiprocessing {
+  +preprocess_data_multiprocessing(data_frame)
+}
+
+class PrepareDataWithLabel {
+  +prepare_data_with_label(data_frame, column)
+}
+
+class SplitTrainingData {
+  +split_training_data(data_frame, test_split_percentage, shuffle_state, shuffle)
+}
+
+class TrainModel {
+  +train_model(sklearn_steps, x_train, y_train, state, generate_model, overwrite)
+}
+
+class EvaluateModel {
+  +evaluate_model(model, x_test, y_test)
+}
+
+Main --> PreprocessPipeline
+Main --> TrainingPipeline
+Main --> Log
+PreprocessPipeline --> ImportData
+PreprocessPipeline --> AnalyseDistribution
+PreprocessPipeline --> PrepareDataWithLabel
+PreprocessPipeline --> PreprocessDataMultiprocessing
+TrainingPipeline --> SplitTrainingData
+TrainingPipeline --> TrainModel
+TrainingPipeline --> EvaluateModel
+@enduml

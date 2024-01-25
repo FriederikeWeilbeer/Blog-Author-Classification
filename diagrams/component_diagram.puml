@@ -1,0 +1,50 @@
+@startuml
+!define ColorComponent(color, componentName) component componentName #color
+!define ColorInterface(color, interfaceName) interface interfaceName #color
+!define ColorDependency(color) ..> #color
+
+ColorComponent(LightYellow, BlogAuthorClassification)
+ColorComponent(LightGreen, DataImport)
+ColorComponent(LightGreen, DataPreprocessing)
+ColorComponent(LightGreen, TextCleaning)
+ColorComponent(LightGreen, TextTokenization)
+ColorComponent(LightGreen, FeatureExtraction)
+ColorComponent(LightGreen, ModelTraining)
+ColorComponent(LightGreen, Model)
+ColorComponent(LightCyan, Logging)
+ColorComponent(LightGreen, ModelEvaluation)
+ColorComponent(LightGreen, ConfusionMatrix)
+ColorComponent(LightGreen, PerformanceMetrics)
+ColorComponent(LightGreen, ModelPersistence)
+ColorComponent(LightGreen, ModelAnalysis)
+
+BlogAuthorClassification --> DataImport
+BlogAuthorClassification --> DataPreprocessing
+BlogAuthorClassification --> ModelTraining
+BlogAuthorClassification --> ModelEvaluation
+BlogAuthorClassification --> Logging
+
+DataImport --> BlogAuthorClassification
+DataPreprocessing --> TextCleaning
+DataPreprocessing --> TextTokenization
+DataPreprocessing --> FeatureExtraction
+
+TextCleaning --> TextProcessing
+TextTokenization --> TextProcessing
+TextProcessing --> FeatureExtraction
+
+ModelTraining --> Model
+ModelTraining --> ModelPersistence
+
+Model --> ModelEvaluation
+
+ModelEvaluation --> ConfusionMatrix
+ModelEvaluation --> PerformanceMetrics
+
+ModelPersistence --> Model
+ModelPersistence --> Logging
+
+ModelAnalysis --> Model
+
+
+@enduml

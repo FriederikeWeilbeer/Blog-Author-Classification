@@ -1,0 +1,26 @@
+@startuml
+!define ColorComponent(color, componentName) component componentName #color
+!define ColorInterface(color, interfaceName) interface interfaceName #color
+!define ColorDependency(color) ..> #color
+
+ColorComponent(LightYellow, BlogAuthorClassification)
+ColorComponent(LightGreen, DataPreprocessing)
+ColorComponent(LightGreen, ModelTraining)
+ColorComponent(LightCyan, Logging)
+ColorComponent(LightGreen, TextProcessing)
+ColorComponent(LightGreen, ModelEvaluation)
+ColorComponent(LightGreen, ModelPersistence)
+ColorComponent(LightGreen, ModelAnalysis)
+
+BlogAuthorClassification --> DataPreprocessing
+BlogAuthorClassification --> ModelTraining
+BlogAuthorClassification --> ModelEvaluation
+BlogAuthorClassification --> Logging
+
+DataPreprocessing --> TextProcessing
+
+ModelTraining --> ModelPersistence
+
+ModelEvaluation --> ModelAnalysis
+
+@enduml

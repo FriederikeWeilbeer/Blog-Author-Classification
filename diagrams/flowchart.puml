@@ -1,0 +1,19 @@
+@startuml
+start
+:Import Data;
+:Preprocess Data;
+:Analyse Distribution;
+:Prepare Data with Label;
+:Split Training Data;
+:Train Model;
+:Evaluate Model;
+
+if (Find Best Model?) then (yes)
+  :Find Best Model;
+  :Training Pipeline;
+else (no)
+  stop
+endif
+
+stop
+@enduml
