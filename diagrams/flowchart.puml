@@ -2,17 +2,23 @@
 start
 :Import Data;
 :Preprocess Data;
-:Analyse Distribution;
+if (Visualization enabled?) then (yes)
+  :Analyze and visualize distribution;
+else (no)
+endif
 :Prepare Data with Label;
 :Split Training Data;
 :Train Model;
-:Evaluate Model;
-
-if (Find Best Model?) then (yes)
-  :Find Best Model;
-  :Training Pipeline;
+if (Evaluate Model enabled) then (yes)
+  :Evaluate Model;
 else (no)
-  stop
+endif
+if (Does model configuration exist
+       or overwrite disabled?) then (no)
+  :Train Model;
+  :Save Model;
+else (yes)
+  :Load Model;
 endif
 
 stop
