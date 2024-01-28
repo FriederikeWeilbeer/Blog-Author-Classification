@@ -19,7 +19,7 @@ import seaborn as sns
 from nltk.probability import FreqDist
 
 from nltk.stem import WordNetLemmatizer
-from sklearn.preprocessing import MinMaxScaler, MaxAbsScaler
+from sklearn.preprocessing import MinMaxScaler
 
 from util.DenseTransformer import DenseTransformer
 from util.PrintColors import PrintColors
@@ -49,23 +49,23 @@ def main():
 
     # Change the configuration here, you can also generate configurations as a dict
     configuration = {
-        "column": "gender",
-        "max_rows": 1000,
-        "sklearn_steps": [TfidfVectorizer(), LogisticRegression(max_iter=1000)],
+        "column": "age",
+        "max_rows": COMPLETE_DATA_LENGTH,
+        "sklearn_steps": [TfidfVectorizer(), LogisticRegression(max_iter=1000, C=0.5, n_jobs=18)],
         "test_split_percentage": 0.3,
         "shuffle": True,
         "shuffle_state": RANDOM_STATE,
         "evaluate": True,
         "evaluate_dist": True,
-        "generate_model": False,
+        "generate_model": True,
         "overwrite": True
     }
 
     preprocess_config = {
-            "max_rows": COMPLETE_DATA_LENGTH,
-            "column": "gender",
-            "evaluate_dist": True
-        }
+        "max_rows": COMPLETE_DATA_LENGTH,
+        "column": "gender",
+        "evaluate_dist": True
+    }
 
     configurations = [
         {
@@ -87,14 +87,9 @@ def main():
         #     }
     ]
 
-    preprocess_pipeline(**preprocess_config)
+    # show_best_model(*find_best_model(preprocess_config, configurations, ComparisonAttribute.PRECISION))
 
-    #best_key, results = find_best_model(preprocess_config, configurations, ComparisonAttribute.PRECISION)
-
-    #model_string = f'Best Model is: Model {best_key}'
-
-    #log(model_string, color=PrintColors.GREEN, exec_time=False)
-    #log(results[best_key], color=PrintColors.GREEN, exec_time=False)
+    full_pipeline(**configuration)
 
     # start pipeline with configuration
     # evaluation, states = training_pipeline(**configuration)
@@ -105,11 +100,19 @@ def main():
     log("Finished program")
 
 
+def show_best_model(best_key, results):
+    model_string = f'Best Model is: Model {best_key}'
+
+    log(model_string, color=PrintColors.GREEN, exec_time=False)
+    log(results[best_key], color=PrintColors.GREEN, exec_time=False)
+
+
 def find_best_model(preprocess_config, configurations, optimization=ComparisonAttribute.ABSOLUTE):
     """
     Function to find the best model configuration  using score evaluation and comparison
 
-    :param configurations: list of configurations
+    :param preprocess_config: list of configurations for preprocessing data
+    :param configurations: list of configurations for training on data
     :param optimization: Comparison attribute for the evaluation (default: ComparisonAttribute.ABSOLUTE)
     """
 
@@ -177,7 +180,9 @@ def full_pipeline(column,
                   generate_model=False,
                   overwrite=True
                   ):
-    pass
+    data = preprocess_pipeline(max_rows, column, evaluate_dist)
+    return training_pipeline(data, column, max_rows, sklearn_steps, test_split_percentage,
+                             shuffle, shuffle_state, evaluate, evaluate_dist, generate_model, overwrite)
 
 
 def preprocess_pipeline(max_rows, column, evaluate_dist=False):
@@ -234,7 +239,6 @@ def training_pipeline(data,
     state_vars.pop("evaluate_dist")
     state_vars.pop("generate_model")
     state = state_vars
-
 
     # Step 4: Split data
     xtrain, xtest, ytrain, ytest = split_training_data(data, test_split_percentage, shuffle_state, shuffle)
@@ -563,9 +567,9 @@ def evaluate_model(model, x_test, y_test):
     y_pred = model.predict(x_test)
 
     # generate a dataframe containing predictions and correct values
-    #df = pd.DataFrame()
-    #df["text"], df["correct"], df["prediction"] = x_test, y_test, y_pred
-    #df["right_prediction"] = np.where(df["correct"] == df["prediction"], 1, 0)
+    # df = pd.DataFrame()
+    # df["text"], df["correct"], df["prediction"] = x_test, y_test, y_pred
+    # df["right_prediction"] = np.where(df["correct"] == df["prediction"], 1, 0)
 
     accuracy = accuracy_score(y_test, y_pred)
     recall = recall_score(y_test, y_pred, average="macro")
