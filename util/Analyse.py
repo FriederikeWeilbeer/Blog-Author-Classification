@@ -137,15 +137,11 @@ def output_evaluation(evaluation_result, filename):
     eval_dict = evaluation_result.state
     eval_dict.update(evaluation_result.evaluation.get_metrics())
 
-    # Convert lists to strings
-    str_dict = {key: str(val) if isinstance(val, list) or isinstance(val, numpy.ndarray) else val for key, val in eval_dict.items()}
-
-    df = pd.DataFrame(str_dict)
-
-    print(type(str_dict["tn"]))
+    df = pd.DataFrame([eval_dict])
 
     # put model name to the beginning
     df.insert(0, "model_name", df.pop("model_name"))
+    df.insert(1, "training_time", df.pop("training_time"))
 
     filename = filename + ".csv"
 

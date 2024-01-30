@@ -48,3 +48,6 @@ class Logger:
 
         self.last_time = time.time()
 
+    def get_duration(self):
+        return time.time() - self.last_time
+

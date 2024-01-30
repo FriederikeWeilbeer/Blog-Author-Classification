@@ -42,7 +42,7 @@ def main():
     }
 
     preprocess_config = {
-        "max_rows": 5000,
+        "max_rows": COMPLETE_DATA_LENGTH,
         "normalize_data": False,
         "column": "age",
         "evaluate_dist": True
@@ -254,6 +254,10 @@ def training_pipeline(model_name,
 
     # Step 5: Train Model
     model = train_model(sklearn_steps, xtrain, ytrain, state, generate_model, overwrite)
+    training_time = LOGGER.get_duration()
+
+    state["training_time"] = training_time
+    LOGGER.log("Finished training the model")
 
     # Step 6: Evaluate Model
     if evaluate:
@@ -325,11 +329,9 @@ def train_model(sklearn_steps, x_train, y_train, state, generate_model, overwrit
 
     try:
         vocabulary_size = len(model.named_steps['tfidfvectorizer'].vocabulary_)
-        LOGGER.log(f'Found {vocabulary_size} features.', color=PrintColors.CYAN)
+        state["number_features"] = vocabulary_size
     except Exception as e:
         LOGGER.log(f'Could not find the vocabulary: {str(e)}', color=PrintColors.RED)
-
-    LOGGER.log("Finished training the model")
     return model
 
 
