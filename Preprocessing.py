@@ -7,8 +7,6 @@ from nltk.corpus import stopwords
 from sklearn.model_selection import train_test_split
 from sklearn.utils import resample
 
-from main import import_data
-
 STOP_WORDS = set(stopwords.words('english'))
 
 
@@ -103,6 +101,7 @@ def preprocess_data(data_frame):
     :return: preprocessed dataframe
     """
     data_frame['text'] = data_frame['text'].apply(clean_text)
+    data_frame['age'] = data_frame['age'].apply(map_to_age_group)
     return data_frame
 
 

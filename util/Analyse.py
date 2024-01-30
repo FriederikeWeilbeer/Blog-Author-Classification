@@ -1,11 +1,15 @@
+import csv
+import os
+
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 from nltk import FreqDist
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
 
 
-def analyse_distribution(data_frame, columns):
+def analyse_distribution(prefix, data_frame, columns, overlapping):
     """
     Function analysing distribution of values in a column of a dataframe
 
@@ -14,12 +18,12 @@ def analyse_distribution(data_frame, columns):
     """
     for column in columns:
         if column in data_frame.columns:
-            build_distribution_graph(data_frame, column)
+            build_distribution_graph(prefix, data_frame, column, overlapping)
         else:
             raise ValueError("Column '{}' is not in the dataframe".format(column))
 
 
-def build_distribution_graph(data_frame, column):
+def build_distribution_graph(prefix, data_frame, column, overlapping):
     """
     Function for building a distribution graph
 
@@ -33,8 +37,16 @@ def build_distribution_graph(data_frame, column):
     # set the figure size
     plt.figure(figsize=(13, 7))
 
+    # Sort the frequency data alphabetically by label
+    sorted_freq = dict(sorted(freq.items()))
+
     # Plot bar chart
-    bars = plt.bar(freq.keys(), freq.values(), edgecolor='black')  # Adjust bins as needed
+    bars = plt.bar(sorted_freq.keys(), sorted_freq.values(), edgecolor='black')  # Adjust bins as needed
+
+    if len(overlapping) == len(sorted_freq):
+        overlapping_freq = [overlapping[key] for key in sorted_freq.keys()]
+        plt.bar(sorted_freq.keys(), overlapping_freq,
+                color='green', alpha=0.5, edgecolor='black', label='Percentage')  # Overlapping bars
 
     # Add absolute values above the bars
     for bar in bars:
@@ -76,8 +88,17 @@ def build_distribution_graph(data_frame, column):
     plt.ylabel('frequency')
     plt.title(column + ' distribution')
 
+    filepath = os.path.join("graphs", prefix, column + "_distribution.png")
+
+    # Extract the directory from the file path
+    directory = os.path.dirname(filepath)
+
+    # Check if the directory exists, and create it if it doesn't
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
     # save the plot to a file
-    plt.savefig("graphs/" + column + "_distribution.png", bbox_inches='tight')
+    plt.savefig(filepath, bbox_inches='tight')
     plt.close()
 
 
@@ -102,5 +123,17 @@ def show_confusion_matrix(y_test, y_pred):
     plt.close()
 
 
-def output_evaluation(y_test, y_pred, filename):
-    pass
+def output_evaluation(evaluation_results, filename):
+    eval_list = []
+    for evaluation_result in evaluation_results.values():
+        eval_dict = evaluation_result.state
+        eval_dict.update(evaluation_result.evaluation.get_metrics())
+        eval_list.append(eval_dict)
+
+
+
+
+    df = pd.DataFrame(eval_list)
+
+    df.to_csv(f'{filename}.csv', index=False)
+

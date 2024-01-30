@@ -1,12 +1,9 @@
 import hashlib
 import os
-
-
 import random
 
 import joblib
-from sklearn.metrics import recall_score, precision_score, accuracy_score, f1_score
-
+import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
 import Preprocessing as Preprocessing
@@ -33,10 +30,12 @@ def main():
 
     # Change the configuration here, you can also generate configurations as a dict
     configuration = {
-        "column": "age",
-        "max_rows": COMPLETE_DATA_LENGTH,
+        "model_name": "Default",
+        "column": "sign",
+        "max_rows": 2000,
         "sklearn_steps": [TfidfVectorizer(), LogisticRegression(max_iter=1000, C=0.5, n_jobs=18)],
         "test_split_percentage": 0.3,
+        "normalize_data": False,
         "shuffle": True,
         "shuffle_state": RANDOM_STATE,
         "evaluate": True,
@@ -46,18 +45,24 @@ def main():
     }
 
     preprocess_config = {
-        "max_rows": COMPLETE_DATA_LENGTH,
-        "column": "gender",
+        "max_rows": 2000,
+        "normalize_data": False,
+        "column": "age",
         "evaluate_dist": True
     }
 
     configurations = [
         {
+            "model_name": "LR-C05",
             "sklearn_steps": [TfidfVectorizer(), LogisticRegression(max_iter=1000, C=0.5, n_jobs=18)],
         },
         {
+            "sklearn_steps": [TfidfVectorizer(), LogisticRegression(max_iter=1000, C=0.5, n_jobs=18)],
+        },
+        {
+            "model_name": "SVC",
             "sklearn_steps": [TfidfVectorizer(max_features=2000), DenseTransformer(), MinMaxScaler(),
-                              SVC(max_iter=20000, tol=1e-3, C=0.5, verbose=True, cache_size=5000, kernel="linear")]
+                              SVC(max_iter=10000, tol=1e-3, C=0.5, verbose=False, cache_size=5000, kernel="linear")]
         },
         #     {
         #         "max_rows": COMPLETE_DATA_LENGTH / 10,
@@ -71,9 +76,10 @@ def main():
         #     }
     ]
 
-    # show_best_model(*find_best_model(preprocess_config, configurations, ComparisonAttribute.PRECISION))
+    show_best_model(*find_best_model(preprocess_config, configurations, ComparisonAttribute.PRECISION, export=True))
 
-    full_pipeline(**configuration)
+    #a = full_pipeline(**configuration)
+    #print(a)
 
     # start pipeline with configuration
     # evaluation, states = training_pipeline(**configuration)
@@ -91,7 +97,7 @@ def show_best_model(best_key, results):
     LOGGER.log(results[best_key], color=PrintColors.GREEN, exec_time=False)
 
 
-def find_best_model(preprocess_config, configurations, optimization=ComparisonAttribute.ABSOLUTE):
+def find_best_model(preprocess_config, configurations, optimization=ComparisonAttribute.ABSOLUTE, export=False):
     """
     Function to find the best model configuration  using score evaluation and comparison
 
@@ -105,6 +111,7 @@ def find_best_model(preprocess_config, configurations, optimization=ComparisonAt
         "test_split_percentage": 0.3,
         "shuffle": True,
         "shuffle_state": RANDOM_STATE,
+        "model_name": "NO_NAME"
     }
 
     fixed_values = {
@@ -127,7 +134,11 @@ def find_best_model(preprocess_config, configurations, optimization=ComparisonAt
 
         # add all fixed configuration values to the config
         for key, value in fixed_values.items():
-            config[key] = value
+
+            if key == "model_name":
+                config[key] = value + i
+            else:
+                config[key] = value
 
         config.update(preprocess_config)
         config["data"] = data
@@ -140,9 +151,6 @@ def find_best_model(preprocess_config, configurations, optimization=ComparisonAt
 
         result = EvaluationResult(*training_pipeline(**config))
 
-        # log the Evaluation Result
-        LOGGER.log("\n" + str(result) + "\n", color=PrintColors.CYAN, exec_time=False)
-
         # change the compare attribute for comparing evaluations
         result.evaluation.comp_attr = optimization
 
@@ -150,12 +158,17 @@ def find_best_model(preprocess_config, configurations, optimization=ComparisonAt
         results[i] = result
         LOGGER.log(f'Finished Model with state: {result.state}', color=PrintColors.BLUE)
 
+    if export:
+        Analyse.output_evaluation(results, 'models_compare')
+
     return max(results, key=results.get), results
 
 
-def full_pipeline(column,
+def full_pipeline(model_name,
+                  column,
                   max_rows,
                   sklearn_steps,
+                  normalize_data=False,
                   test_split_percentage=0.3,
                   shuffle=False,
                   shuffle_state=random.randint(10000, 20000),
@@ -164,12 +177,12 @@ def full_pipeline(column,
                   generate_model=False,
                   overwrite=True
                   ):
-    data = preprocess_pipeline(max_rows, column, evaluate_dist)
-    return training_pipeline(data, column, max_rows, sklearn_steps, test_split_percentage,
+    data = preprocess_pipeline(max_rows, column, normalize_data, evaluate_dist)
+    return training_pipeline(model_name, data, column, max_rows, sklearn_steps, normalize_data, test_split_percentage,
                              shuffle, shuffle_state, evaluate, evaluate_dist, generate_model, overwrite)
 
 
-def preprocess_pipeline(max_rows, column, evaluate_dist=False):
+def preprocess_pipeline(max_rows, column, normalize_data, evaluate_dist=False):
     # Step 1: Import data
     data = Preprocessing.import_data(FILE_PATH, int(max_rows))
     LOGGER.log("Finished importing")
@@ -178,9 +191,12 @@ def preprocess_pipeline(max_rows, column, evaluate_dist=False):
     data = Preprocessing.preprocess_data_multiprocessing(data)
     LOGGER.log("Finished preprocessing")
 
+    if normalize_data:
+        data = Preprocessing.normalize_data(data, column, min(data[column].value_counts()))
+
     # Step Optional: Analyse Distribution
     if evaluate_dist:
-        Analyse.analyse_distribution(data, ['age', 'gender', 'sign'])
+        Analyse.analyse_distribution('total', data, ['age', 'gender', 'sign'], [])
         LOGGER.log("Finished analysing distribution")
 
     # Step 3: Prepare data with label
@@ -190,10 +206,12 @@ def preprocess_pipeline(max_rows, column, evaluate_dist=False):
     return data
 
 
-def training_pipeline(data,
+def training_pipeline(model_name,
+                      data,
                       column,
                       max_rows,
                       sklearn_steps,
+                      normalize_data=False,
                       test_split_percentage=0.3,
                       shuffle=False,
                       shuffle_state=random.randint(10000, 20000),
@@ -227,7 +245,7 @@ def training_pipeline(data,
     state_vars.pop("evaluate")
     state_vars.pop("evaluate_dist")
     state_vars.pop("generate_model")
-    state = state_vars
+    state = state_vars.copy()
 
     # Step 4: Split data
     xtrain, xtest, ytrain, ytest = Preprocessing.split_training_data(data, test_split_percentage, shuffle_state, shuffle)
@@ -237,7 +255,15 @@ def training_pipeline(data,
 
     # Step 6: Evaluate Model
     if evaluate:
-        return evaluate_model(model, xtest, ytest), state
+        result = evaluate_model(model, xtest, ytest)
+        # log the Evaluation Result
+        LOGGER.log("\n" + str(result) + "\n", color=PrintColors.CYAN, exec_time=False)
+
+        test_data = pd.DataFrame({column: ytest})
+
+        Analyse.analyse_distribution(state_vars["model_name"], test_data, [column], result.get_correct_by_category())
+
+        return result, state
     else:
         return None
 
@@ -257,15 +283,20 @@ def train_model(sklearn_steps, x_train, y_train, state, generate_model, overwrit
 
     model = make_pipeline(*sklearn_steps)
 
+    model_name = state.pop("model_name")
+
     # Generate String representing the configuration of the model
-    pipeline_str = str(state)
+    config_str = str(state)
 
     # Calculate the hash value out of model state for the model name
     # used to load and save models with the same state
-    hash_value = hashlib.sha256(pipeline_str.encode()).hexdigest()
+    hash_value = hashlib.sha256(config_str.encode()).hexdigest()
+
+    # generate prefix out of model name
+    prefix = model_name + "-" if "NO_NAME" not in model_name else ""
 
     # generate filename
-    file_name = state["column"] + "-" + str(state["max_rows"]) + "-" + hash_value
+    file_name = prefix + state["column"] + "-" + str(state["max_rows"]) + "-" + hash_value
 
     # file path of the saved model
     file_path = "serialized/" + file_name + ".joblib"
@@ -301,14 +332,9 @@ def evaluate_model(model, x_test, y_test):
 
     y_pred = model.predict(x_test)
 
-    accuracy = accuracy_score(y_test, y_pred)
-    recall = recall_score(y_test, y_pred, average="macro")
-    precision = precision_score(y_test, y_pred, average="macro")
-    f1 = f1_score(y_test, y_pred, average="macro")
-
     Analyse.show_confusion_matrix(y_test, y_pred)
 
-    return Evaluation(accuracy, recall, precision, f1)
+    return Evaluation(y_test, y_pred)
 
 
 FILE_PATH = "assets/blogtext.csv"

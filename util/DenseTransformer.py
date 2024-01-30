@@ -8,3 +8,9 @@ class DenseTransformer(TransformerMixin):
 
     def fit(self, x, y=None, **fit_params):
         return self
+
+    def __str__(self):
+        """
+        String building method.
+        """
+        return "DenseTransformer"
