@@ -4,6 +4,21 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import recall_score, precision_score, accuracy_score, f1_score, confusion_matrix
 
+CONFIG_KEYS = {
+    "model_name": "",
+    "column": "gender",
+    "max_rows": 681284,
+    "sklearn_steps": "",
+    "test_split_percentage": 0.3,
+    "shuffle": False,
+    "shuffle_state": 41236451,
+    "evaluate": True,
+    "evaluate_dist": True,
+    "generate_model": True,
+    "overwrite": False
+}
+
+
 
 class ComparisonAttribute(Enum):
     ACCURACY = 'accuracy'
@@ -136,6 +151,19 @@ class EvaluationResult:
     def __init__(self, evaluation: Evaluation, state):
         self.evaluation = evaluation
         self.state = state
+
+    def export_config(self):
+        export_string = '{\n'
+        for key in CONFIG_KEYS:
+            if key in self.state.keys():
+                if isinstance(self.state[key], str):
+                    export_string += f'    \"{key}\": \"{self.state[key]}\",\n'
+                else:
+                    export_string += f'    \"{key}\": {self.state[key]},\n'
+            else:
+                export_string += f'    \"{key}\": {CONFIG_KEYS[key]},\n'
+
+        return export_string[:-2] + '\n}'
 
     def __eq__(self, other):
         if isinstance(other, EvaluationResult):

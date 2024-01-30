@@ -2,6 +2,7 @@ import joblib
 import pandas as pd
 from flask import Flask, render_template, url_for, request, redirect
 
+import Preprocessing
 import main
 
 app = Flask(__name__)
@@ -22,7 +23,7 @@ def process():
 		file_path = "models/" + str(model_option.lower()) + ".joblib"
 		try:
 			model = joblib.load(file_path)
-			cleaned_text = main.clean_text(raw_text)
+			cleaned_text = Preprocessing.clean_text(raw_text)
 			text = pd.Series(cleaned_text)
 			result = model.predict(text)[0]
 			probability = model.predict_proba(text)

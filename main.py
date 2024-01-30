@@ -26,20 +26,23 @@ def main():
     LOGGER.log("Start")
 
     # Change the configuration here, you can also generate configurations as a dict
-    configuration = {
-        "model_name": "Default",
-        "column": "sign",
-        "max_rows": COMPLETE_DATA_LENGTH,
-        "sklearn_steps": [TfidfVectorizer(), LogisticRegression(max_iter=1000, C=0.5, n_jobs=18)],
-        "test_split_percentage": 0.3,
-        "normalize_data": False,
-        "shuffle": True,
-        "shuffle_state": RANDOM_STATE,
-        "evaluate": True,
-        "evaluate_dist": True,
-        "generate_model": True,
-        "overwrite": True
-    }
+    configuration = \
+        {
+            "model_name": "LR-C05-SAGA-df_5_sublin",
+            "column": "age",
+            "max_rows": 681284,
+            "sklearn_steps": [TfidfVectorizer(max_features=50000, min_df=5, sublinear_tf=True), LogisticRegression(C=0.5, max_iter=1000, n_jobs=18, solver='saga')],
+            "test_split_percentage": 0.2,
+            "shuffle": True,
+            "shuffle_state": 41236451,
+            "evaluate": True,
+            "evaluate_dist": True,
+            "generate_model": True,
+            "overwrite": False
+        }
+
+    # export model -> Remove comment
+    full_pipeline(**configuration)
 
     preprocess_config = {
         "max_rows": COMPLETE_DATA_LENGTH,
@@ -50,28 +53,23 @@ def main():
 
     configurations = [
         {
-            "model_name": "LR-C05-lbfgs-df_1",
-            "sklearn_steps": [TfidfVectorizer(max_features=50000),
-                              LogisticRegression(max_iter=1000, C=0.5, n_jobs=18, solver="lbfgs")],
-        },
-        {
-            "model_name": "LR-C05-SAG-df_1",
-            "sklearn_steps": [TfidfVectorizer(max_features=50000),
-                              LogisticRegression(max_iter=1000, C=0.5, n_jobs=18, solver="sag")],
-        },
-        {
-            "model_name": "LR-C05-SAGA-df_1",
-            "sklearn_steps": [TfidfVectorizer(max_features=50000),
+            "model_name": "LR-C05-SAGA-df_5_sublin",
+            "sklearn_steps": [TfidfVectorizer(max_features=50000, min_df=5, sublinear_tf=True),
                               LogisticRegression(max_iter=1000, C=0.5, n_jobs=18, solver="saga")],
         },
         {
-            "model_name": "LR-C05-newton-df_1",
-            "sklearn_steps": [TfidfVectorizer(max_features=50000),
-                              LogisticRegression(max_iter=1000, C=0.5, n_jobs=18, solver="newton-cg")],
+            "model_name": "LR-C05-SAGA-df_01_sublin",
+            "sklearn_steps": [TfidfVectorizer(max_features=50000, min_df=0.1, sublinear_tf=True),
+                              LogisticRegression(max_iter=1000, C=0.5, n_jobs=18, solver="saga")],
+        },
+        {
+            "model_name": "LR-C05-SAGA-df_02_sublin",
+            "sklearn_steps": [TfidfVectorizer(max_features=50000, min_df=0.1, sublinear_tf=True),
+                              LogisticRegression(max_iter=1000, C=0.5, n_jobs=18, solver="saga")],
         }
     ]
 
-    show_best_model(*find_best_model(preprocess_config, configurations, ComparisonAttribute.PRECISION, export=True))
+    # show_best_model(*find_best_model(preprocess_config, configurations, ComparisonAttribute.PRECISION, export=True))
 
     #a = full_pipeline(**configuration)
     #print(a)
@@ -86,12 +84,13 @@ def main():
 
 
 def show_best_model(best_key, results):
-    best = results[best_key].state["model_name"]
+    best = results[best_key]
 
-    model_string = f'Best Model is: Model [{best_key}] {best}'
+    model_string = f'Best Model is: Model [{best_key}] {best.state["model_name"]}'
 
     LOGGER.log(model_string, color=PrintColors.GREEN, exec_time=False)
     LOGGER.log(results[best_key], color=PrintColors.GREEN, exec_time=False)
+    LOGGER.log(f'Best model export: \n{best.export_config()}', color=PrintColors.BLUE, exec_time=False, current_time=False)
 
 
 def find_best_model(preprocess_config, configurations, optimization=ComparisonAttribute.ABSOLUTE, export=False):
@@ -356,19 +355,6 @@ FILE_PATH = "assets/blogtext.csv"
 COMPLETE_DATA_LENGTH = 681284
 RANDOM_STATE = 41236451
 LOGGING = True
-
-DEFAULT_CONFIG = {
-    "column": "gender",
-    "max_rows": COMPLETE_DATA_LENGTH,
-    "sklearn_steps": [TfidfVectorizer(), LogisticRegression(max_iter=1000)],
-    "test_split_percentage": 0.3,
-    "shuffle": False,
-    "shuffle_state": RANDOM_STATE,
-    "evaluate": False,
-    "evaluate_dist": False,
-    "generate_model": False,
-    "overwrite": True
-}
 
 # driver
 if __name__ == "__main__":
