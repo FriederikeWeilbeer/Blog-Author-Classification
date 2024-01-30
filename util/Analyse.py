@@ -1,6 +1,6 @@
-import csv
 import os
 
+import numpy
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -102,7 +102,7 @@ def build_distribution_graph(prefix, data_frame, column, overlapping):
     plt.close()
 
 
-def show_confusion_matrix(y_test, y_pred):
+def show_confusion_matrix(y_test, y_pred, model_name, column):
     # get labels of the data for plot
     unique_labels = sorted(set(y_test))
 
@@ -118,22 +118,41 @@ def show_confusion_matrix(y_test, y_pred):
     plt.xlabel('Predicted Labels')
     plt.ylabel('True Labels')
 
+    filepath = os.path.join('graphs', model_name, column + 'confusion_matrix_heatmap.png')
+
+    # Extract the directory from the file path
+    directory = os.path.dirname(filepath)
+
+    # Check if the directory exists, and create it if it doesn't
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
     # save the heatmap to a file
-    heatmap.get_figure().savefig('graphs/' + 'confusion_matrix_heatmap.png', bbox_inches='tight')
+    heatmap.get_figure().savefig(filepath, bbox_inches='tight')
     plt.close()
 
 
-def output_evaluation(evaluation_results, filename):
-    eval_list = []
-    for evaluation_result in evaluation_results.values():
-        eval_dict = evaluation_result.state
-        eval_dict.update(evaluation_result.evaluation.get_metrics())
-        eval_list.append(eval_dict)
+def output_evaluation(evaluation_result, filename):
 
+    eval_dict = evaluation_result.state
+    eval_dict.update(evaluation_result.evaluation.get_metrics())
 
+    # Convert lists to strings
+    str_dict = {key: str(val) if isinstance(val, list) or isinstance(val, numpy.ndarray) else val for key, val in eval_dict.items()}
 
+    df = pd.DataFrame(str_dict)
 
-    df = pd.DataFrame(eval_list)
+    print(type(str_dict["tn"]))
 
-    df.to_csv(f'{filename}.csv', index=False)
+    # put model name to the beginning
+    df.insert(0, "model_name", df.pop("model_name"))
 
+    filename = filename + ".csv"
+
+    # Check if the file exists
+    if os.path.exists(filename):
+        # Append DataFrame to the existing CSV file
+        df.to_csv(filename, sep=",", mode='a', header=False, index=False)
+    else:
+        # Create a new CSV file
+        df.to_csv(filename, sep=",", mode='w', header=True, index=False)

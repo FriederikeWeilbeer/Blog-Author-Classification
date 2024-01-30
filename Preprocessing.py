@@ -66,7 +66,7 @@ def normalize_data_2d(dataframe, column1, column2):
 
 def map_to_age_group(age):
     """
-    Function for converting age to an age group
+    Function for converting age to an age. group
     """
     if 10 <= age < 20:
         return '10s'
@@ -207,21 +207,3 @@ def split_training_data(data_frame, test_split_percentage, shuffle_state, shuffl
 
     return train_test_split(x.values, y.values, test_size=test_split_percentage,
                             random_state=shuffle_state, shuffle=shuffle)
-
-
-def main():
-    df = import_data(FILE_PATH, COMPLETE_DATA_LENGTH)
-
-    df['age_group'] = df['age'].apply(map_to_age_group)
-
-    data = normalize_data_2d(df, 'age_group', 'gender')
-
-
-FILE_PATH = "assets/blogtext.csv"
-COMPLETE_DATA_LENGTH = 681284
-RANDOM_STATE = 41236451
-LOGGING = True
-
-
-if __name__ == '__main__':
-    main()
