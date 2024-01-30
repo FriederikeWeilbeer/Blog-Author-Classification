@@ -1,43 +1,27 @@
 import hashlib
-
-import numpy as np
-import pandas as pd
-from matplotlib import pyplot as plt
-from nltk.corpus import stopwords
-from nltk import word_tokenize
-import time
-import re
 import os
-import multiprocessing as mp
+
 
 import random
 
 import joblib
+from sklearn.metrics import recall_score, precision_score, accuracy_score, f1_score
 
-import seaborn as sns
-
-from nltk.probability import FreqDist
-
-from nltk.stem import WordNetLemmatizer
 from sklearn.preprocessing import MinMaxScaler
 
+import Preprocessing as Preprocessing
+from util import Analyse as Analyse
 from util.DenseTransformer import DenseTransformer
+from util.Logger import Logger
 from util.PrintColors import PrintColors
-from util.Evaluation import Evaluation, ComparisonAttribute, EvaluationResult
+from util.Evaluation import ComparisonAttribute, EvaluationResult, Evaluation
 
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline
-from sklearn.metrics import recall_score, precision_score, accuracy_score, f1_score, confusion_matrix
 from sklearn.svm import SVC
 
-lemmatizer = WordNetLemmatizer()
-
-STOP_WORDS = set(stopwords.words('english'))
-START_TIME = time.time()
-LAST_STAMP = time.time()
+LOGGER = Logger(True)
 
 
 def main():
@@ -45,7 +29,7 @@ def main():
     Main function
     """
 
-    log("Start")
+    LOGGER.log("Start")
 
     # Change the configuration here, you can also generate configurations as a dict
     configuration = {
@@ -97,14 +81,14 @@ def main():
     # log(evaluation, color=PrintColors.CYAN, exec_time=False)
     # log(states, color=PrintColors.CYAN, exec_time=False)
 
-    log("Finished program")
+    LOGGER.log("Finished program")
 
 
 def show_best_model(best_key, results):
     model_string = f'Best Model is: Model {best_key}'
 
-    log(model_string, color=PrintColors.GREEN, exec_time=False)
-    log(results[best_key], color=PrintColors.GREEN, exec_time=False)
+    LOGGER.log(model_string, color=PrintColors.GREEN, exec_time=False)
+    LOGGER.log(results[best_key], color=PrintColors.GREEN, exec_time=False)
 
 
 def find_best_model(preprocess_config, configurations, optimization=ComparisonAttribute.ABSOLUTE):
@@ -157,14 +141,14 @@ def find_best_model(preprocess_config, configurations, optimization=ComparisonAt
         result = EvaluationResult(*training_pipeline(**config))
 
         # log the Evaluation Result
-        log("\n" + str(result) + "\n", color=PrintColors.CYAN, exec_time=False)
+        LOGGER.log("\n" + str(result) + "\n", color=PrintColors.CYAN, exec_time=False)
 
         # change the compare attribute for comparing evaluations
         result.evaluation.comp_attr = optimization
 
         # add to result list
         results[i] = result
-        log(f'Finished Model with state: {result.state}', color=PrintColors.BLUE)
+        LOGGER.log(f'Finished Model with state: {result.state}', color=PrintColors.BLUE)
 
     return max(results, key=results.get), results
 
@@ -187,17 +171,21 @@ def full_pipeline(column,
 
 def preprocess_pipeline(max_rows, column, evaluate_dist=False):
     # Step 1: Import data
-    data = import_data(FILE_PATH, int(max_rows))
+    data = Preprocessing.import_data(FILE_PATH, int(max_rows))
+    LOGGER.log("Finished importing")
 
     # Step 2: Preprocess data
-    data = preprocess_data_multiprocessing(data)
+    data = Preprocessing.preprocess_data_multiprocessing(data)
+    LOGGER.log("Finished preprocessing")
 
     # Step Optional: Analyse Distribution
     if evaluate_dist:
-        analyse_distribution(data, ['age', 'gender', 'sign', "id"])
+        Analyse.analyse_distribution(data, ['age', 'gender', 'sign'])
+        LOGGER.log("Finished analysing distribution")
 
     # Step 3: Prepare data with label
-    data = prepare_data_with_label(data, column)
+    data = Preprocessing.prepare_data_with_label(data, column)
+    LOGGER.log("Preparing Data with label")
 
     return data
 
@@ -217,6 +205,7 @@ def training_pipeline(data,
     """
     Function for the training pipeline
 
+    :param data:
     :param column: column of dataframe which should be trained
     :param max_rows: max rows for import
     :param sklearn_steps: steps for the sklearn model pipeline
@@ -241,7 +230,7 @@ def training_pipeline(data,
     state = state_vars
 
     # Step 4: Split data
-    xtrain, xtest, ytrain, ytest = split_training_data(data, test_split_percentage, shuffle_state, shuffle)
+    xtrain, xtest, ytrain, ytest = Preprocessing.split_training_data(data, test_split_percentage, shuffle_state, shuffle)
 
     # Step 5: Train Model
     model = train_model(sklearn_steps, xtrain, ytrain, state, generate_model, overwrite)
@@ -251,260 +240,6 @@ def training_pipeline(data,
         return evaluate_model(model, xtest, ytest), state
     else:
         return None
-
-
-def printc(text, color=PrintColors.DEFAULT):
-    """
-    Function for printing a string in a color
-
-    :param text: string which will be printed
-    :param color: color of the text (default: PrintColors.DEFAULT)
-    """
-    print(f'{color}{text}{PrintColors.DEFAULT}')
-
-
-def log(message, color=PrintColors.DEFAULT, exec_time=True, current_time=True):
-    """
-    Function for logging a message with timestamp
-
-    :param message: message for log entry
-    :param color: color of the message (default: PrintColors.DEFAULT)
-    :param exec_time: flag if execution time should be displayed (default: True)
-    :param current_time: flag if current time should be displayed (default: True)
-    """
-    global LAST_STAMP
-
-    lines = str(message).split('\n')
-
-    if LOGGING:
-        for line in lines:
-            if exec_time and current_time:
-                printc(
-                    f'[{time.strftime("%H:%M:%S", time.localtime())}]: {line}  -  Execution took {time.time() - LAST_STAMP:.2f}s. Total: {time.time() - START_TIME:.2f}s',
-                    color=color)
-            elif exec_time and not current_time:
-                printc(
-                    f'{line}  -  Execution took {time.time() - LAST_STAMP:.2f}s. Total: {time.time() - START_TIME:.2f}s',
-                    color=color)
-            elif not exec_time and current_time:
-                printc(f'[{time.strftime("%H:%M:%S", time.localtime())}]: {line}', color=color)
-            elif not exec_time and not current_time:
-                printc(f'{line}', color=color)
-
-    LAST_STAMP = time.time()
-
-
-def import_data(file_path, rows):
-    """
-    Function for importing data from csv
-
-    :param file_path: path of the csv file
-    :param rows: amount of rows to import
-    :return: pandas dataframe
-    """
-    data_frame = pd.read_csv(file_path, delimiter=',', nrows=rows, encoding='utf-8', on_bad_lines='skip')
-
-    log("Finished importing data")
-
-    return data_frame
-
-
-def analyse_distribution(data_frame, columns):
-    """
-    Function analysing distribution of values in a column of a dataframe
-
-    :param data_frame: dataframe to analyse
-    :param columns: an array of columns to analyse
-    """
-    for column in columns:
-        if column in data_frame.columns:
-            build_distribution_graph(data_frame, column)
-        else:
-            raise ValueError("Column '{}' is not in the dataframe".format(column))
-
-
-def build_distribution_graph(data_frame, column):
-    """
-    Function for building a distribution graph
-
-    :param data_frame: dataframe to analyse
-    :param column: a column to analyse
-    """
-
-    # Get the frequency distribution of every value
-    freq = FreqDist(np.array([x for x in data_frame[column]]).ravel())
-
-    # set the figure size
-    plt.figure(figsize=(13, 7))
-
-    # Plot bar chart
-    bars = plt.bar(freq.keys(), freq.values(), edgecolor='black')  # Adjust bins as needed
-
-    # Add absolute values above the bars
-    for bar in bars:
-        yval = bar.get_height()
-
-        # Values placing the text
-        rotation = 'horizontal'
-        text = None
-
-        # Calculate the percentage of one bar
-        percentage = (yval / sum(freq.values()) * 100)
-
-        # if the chart contains less than 15 x-values, the text is displayed horizontal
-        if len(freq.keys()) < 15:
-            rotation = 'horizontal'
-
-            # put text in two lines
-            text = f"{round(yval, 2)}\n({round(percentage, 2)}%)"
-
-            # add a margin for text above the bars by extending the y-axis by 1/7
-            plt.ylim(top=max(freq.values()) + max(freq.values()) / 7)
-
-        # else it is displayed vertical
-        else:
-            rotation = 'vertical'
-
-            # put text in one line
-            text = f"{round(yval, 2)} ({round(percentage, 2)}%)"
-
-            # add a margin for text above the bars by extending the y-axis by 1/3
-            plt.ylim(top=max(freq.values()) + max(freq.values()) / 3)
-
-        # display text
-        plt.text(bar.get_x() + bar.get_width() / 2, yval + max(freq.values()) / 50, text, ha='center', va='bottom',
-                 rotation=rotation)
-
-    # # Add labels and title to diagram
-    plt.xlabel(column)
-    plt.ylabel('frequency')
-    plt.title(column + ' distribution')
-
-    # save the plot to a file
-    plt.savefig("graphs/" + column + "_distribution.png", bbox_inches='tight')
-    plt.close()
-
-
-def preprocess_data(data_frame):
-    """
-    Function for preprocessing text column of a dataframe
-
-    :param data_frame: a pandas dataframe
-    :return: preprocessed dataframe
-    """
-    data_frame['text'] = data_frame['text'].apply(clean_text)
-    return data_frame
-
-
-def clean_text(text):
-    """
-    Function for cleaning text by replacing special characters and stopwords
-
-    :param text: text to be cleaned
-    :return: cleaned text
-    """
-
-    # Replace all special characters with a whitespace to ensure that words are still split
-    # f.e. data point #681283 "Hey everybody...and Susan"
-    text = re.sub(r"[^\w\s]", " ", text)
-
-    # Replace all multiple whitespaces with a single whitespace
-    text = re.sub(r"^\s+", " ", text.strip()).strip()
-
-    # Remove stopwords
-    tokens = word_tokenize(text)
-    tokens = [w for w in tokens if w not in STOP_WORDS]
-    return ' '.join(tokens)
-
-
-def preprocess_data_multiprocessing(data_frame):
-    """
-    Function for preprocessing data on multiple cores
-    using amount of available cores - 2
-
-    :param data_frame: a pandas dataframe
-    :return: preprocessed dataframe
-    """
-
-    # get the amount of available cpus
-    cpu_count = mp.cpu_count() - 2
-
-    # split the dataframe into length/cpu_count dataframes
-    df_split = split_dataframe_into_chunks(data_frame, cpu_count)
-
-    # df_split = np.array_split(data_frame, cpu_count) - deprecated
-
-    # create pool with cpu_count amount of threads
-    with mp.Pool(cpu_count) as p:
-        # concat the split dataframes to a result dataframe and apply preprocess_data function on every split dataframe
-        df = pd.concat(p.map(preprocess_data, df_split))
-
-    log("Finished preprocessing data")
-
-    return df
-
-
-def split_dataframe_into_chunks(data_frame, chunk_size):
-    """
-    Function for splitting a pandas array into equal chunks
-    Used because numpy.array_split() uses deprecated function
-
-    :param data_frame: a pandas dataframe
-    :param chunk_size: number of chunks to split the dataframe into
-    :return: split dataframe
-    """
-
-    # Calculate the number of rows in each part and the remainder
-    rows_per_part, remainder = divmod(len(data_frame), chunk_size)
-
-    # Split the DataFrame into equal parts
-    df_split = [data_frame.iloc[i * rows_per_part:(i + 1) * rows_per_part] for i in range(chunk_size)]
-
-    # Distribute remaining rows among the parts
-    for i in range(remainder):
-        df_split[i] = pd.concat(
-            [df_split[i], data_frame.iloc[chunk_size * rows_per_part + i:i + 1 + chunk_size * rows_per_part]])
-
-    return df_split
-
-
-def prepare_data_with_label(data_frame, column):
-    """
-    Function for preparing data
-    by creating a dataframe with text and labels as columns
-
-    :param data_frame: a pandas dataframe
-    :param column: the column name with the values
-    :return: a dataframe with text and labels
-    """
-    result_data_frame = data_frame[["text", column]].copy()
-    result_data_frame.columns = ['text', 'label']
-
-    # todo: comment
-    result_data_frame["label"] = result_data_frame["label"].astype(str)
-
-    log("Finished preparing data with label")
-
-    return result_data_frame
-
-
-def split_training_data(data_frame, test_split_percentage, shuffle_state, shuffle):
-    """
-    Function for splitting data into training and testing sets
-
-    :param data_frame: a pandas dataframe
-    :param test_split_percentage: percentage of the test data
-    :param shuffle_state: state to reproducing the shuffle process
-    :param shuffle: flag for shuffling
-    :return: xtrain, xtest, ytrain, ytest
-    """
-    x = data_frame["text"]
-    y = data_frame["label"]
-
-    log("Finished splitting data")
-
-    return train_test_split(x.values, y.values, test_size=test_split_percentage,
-                            random_state=shuffle_state, shuffle=shuffle)
 
 
 def train_model(sklearn_steps, x_train, y_train, state, generate_model, overwrite):
@@ -550,7 +285,7 @@ def train_model(sklearn_steps, x_train, y_train, state, generate_model, overwrit
         model_path = "models/" + category + ".joblib"
         joblib.dump(model, model_path)
 
-    log("Finished training the model")
+    LOGGER.log("Finished training the model")
     return model
 
 
@@ -566,35 +301,12 @@ def evaluate_model(model, x_test, y_test):
 
     y_pred = model.predict(x_test)
 
-    # generate a dataframe containing predictions and correct values
-    # df = pd.DataFrame()
-    # df["text"], df["correct"], df["prediction"] = x_test, y_test, y_pred
-    # df["right_prediction"] = np.where(df["correct"] == df["prediction"], 1, 0)
-
     accuracy = accuracy_score(y_test, y_pred)
     recall = recall_score(y_test, y_pred, average="macro")
     precision = precision_score(y_test, y_pred, average="macro")
     f1 = f1_score(y_test, y_pred, average="macro")
 
-    # get labels of the data for plot
-    unique_labels = sorted(set(y_test))
-
-    # set plot size
-    plt.figure(figsize=(16, 9))
-
-    # get confusion matrix of the model
-    cm = confusion_matrix(y_test, y_pred, labels=unique_labels)
-
-    # generate a heatmap out of the confusion matrix
-    heatmap = sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=unique_labels, yticklabels=unique_labels)
-    plt.xlabel('Predicted Labels')
-    plt.ylabel('True Labels')
-
-    # save the heatmap to a file
-    heatmap.get_figure().savefig('graphs/' + 'confusion_matrix_heatmap.png', bbox_inches='tight')
-    plt.close()
-
-    log("Finished evaluating the model")
+    Analyse.show_confusion_matrix(y_test, y_pred)
 
     return Evaluation(accuracy, recall, precision, f1)
 
