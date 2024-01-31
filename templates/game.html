@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Flask API to extract NER</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO"
+          crossorigin="anonymous">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+    <style>
+        .quote-container {
+            border-left: 5px solid #007bff;
+            background-color: #f8f9fa;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .quote-container h1 {
+            font-size: 1.5em;
+        }
+
+        .quote-container p {
+            margin-top: 10px;
+        }
+    </style>
+<body>
+<nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+    <a class="navbar-brand" href="/">Blog Author Classifier</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarsExampleDefault">
+        <ul class="navbar-nav mr-auto">
+            <li>
+                <a class="nav-link" href="/">Single <span class="sr-only">(current)</span></a>
+            </li>
+            <li>
+                <a class="nav-link" href="/multi">Multiclass <span class="sr-only">(current)</span></a>
+            </li>
+            <li class="nav-item active">
+                <a class="nav-link" href="/game">Game <span class="sr-only">(current)</span></a>
+            </li>
+        </ul>
+    </div>
+</nav>
+<br/>
+<br/>
+<br/>
+<div class="container">
+
+    <form method="POST" action="/game">
+        <input type="hidden" name="quote" id="quoteInput" value="">
+        <input type="hidden" name="random_index" id="randomInput" value="">
+
+        <div class="form-group">
+            <div class="d-flex flex-column">
+                <h1>Guess the Gender, Age and Sign of the author</h1>
+                <div class="quote-container">
+                    <p id="quoteValue"></p>
+                    <button type="button" class="btn btn-primary m-2" id="newQuoteBtn">New Quote</button>
+                </div>
+                <h2>Select Gender:</h2>
+                <div class="d-flex flex-row">
+                    <!-- Add buttons for gender, age, and sign -->
+                    <!-- Add hidden input fields for gender, age, and sign -->
+                    <input type="hidden" name="gender" id="genderInput" value="">
+                    <button type="button" class="btn btn-primary m-2" onclick="selectGender('Male', id)" id="maleBtn">Male</button>
+                    <button type="button" class="btn btn-primary m-2" onclick="selectGender('Female', id)" id="femaleBtn">Female</button>
+                </div>
+                <h2>Select Age:</h2>
+                <div class="d-flex flex-row">
+                    <input type="hidden" name="age" id="ageInput" value="">
+                    <button type="button" class="btn btn-secondary m-2" onclick="selectAge('10s', id)" id="10sBtn">10s</button>
+                    <button type="button" class="btn btn-secondary m-2" onclick="selectAge('20s', id)" id="20sBtn">20s</button>
+                    <button type="button" class="btn btn-secondary m-2" onclick="selectAge('30s', id)" id="30sBtn">30s</button>
+                </div>
+                <h2>Select Sign:</h2>
+                <div class="d-flex flex-row">
+                    <input type="hidden" name="sign" id="signInput" value="">
+                    <button type="button" class="btn btn-info m-2" onclick="selectSign('Aquarius', id)" id="AquariusBtn">Aquarius</button>
+                    <button type="button" class="btn btn-info m-2" onclick="selectSign('Aries', id)" id="AriesBtn">Aries</button>
+                    <button type="button" class="btn btn-info m-2" onclick="selectSign('Cancer', id)" id="CancerBtn">Cancer</button>
+                    <button type="button" class="btn btn-info m-2" onclick="selectSign('Capricorn', id)" id="CapricornBtn">Capricorn</button>
+                    <button type="button" class="btn btn-info m-2" onclick="selectSign('Gemini', id)" id="GeminiBtn">Gemini</button>
+                    <button type="button" class="btn btn-info m-2" onclick="selectSign('Leo', id)" id="LeoBtn">Leo</button>
+                    <button type="button" class="btn btn-info m-2" onclick="selectSign('Libra', id)" id="LibraBtn">Libra</button>
+                    <button type="button" class="btn btn-info m-2" onclick="selectSign('Pisces', id)" id="PiscesBtn">Pisces</button>
+                    <button type="button" class="btn btn-info m-2" onclick="selectSign('Sagittarius', id)" id="SagittariusBtn">Sagittarius</button>
+                    <button type="button" class="btn btn-info m-2" onclick="selectSign('Scorpio', id)" id="ScorpioBtn">Scorpio</button>
+                    <button type="button" class="btn btn-info m-2" onclick="selectSign('Taurus', id)" id="TaurusBtn">Taurus</button>
+                    <button type="button" class="btn btn-info m-2" onclick="selectSign('Virgo', id)" id="VirgoBtn">Virgo</button>
+                </div>
+                <button type="submit" class="btn btn-info"><i class="fa fa-database"></i> Submit</button>
+            </div>
+        </div>
+    </form>
+
+    <!--Prediction is available-->
+{% if status_code == 1 %}
+    <div class="container">
+    <div class="d-flex flex-row">
+
+    <div class="p-2">
+        <div class="alert alert-success" role="alert">
+            <p class="alert-heading">Player</p>
+            {% if result["gender_player"] == result["gender_real"] %}
+                <div>Gender: {{result["gender_player"]}}</div>
+            {% else %}
+                <div class="bg-danger p-1 rounded">Gender: {{result["gender_player"]}} Correct: {{ result["gender_real"] }}</div>
+            {% endif %}
+
+            {% if result["age_player"] == result["age_real"] %}
+                <div>Age: {{result["age_player"]}}</div>
+            {% else %}
+                <div class="bg-danger p-1 rounded">Age: {{result["age_player"]}} Correct: {{ result["age_real"] }}</div>
+            {% endif %}
+
+            {% if result["sign_player"] == result["sign_real"] %}
+                <div>Sign: {{result["sign_player"]}}</div>
+            {% else %}
+                <div class="bg-danger p-1 rounded">Sign: {{result["sign_player"]}} Correct: {{ result["sign_real"] }}</div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="p-2">
+        <div class="alert alert-success" role="alert">
+            <p class="alert-heading">Player</p>
+            {% if result["gender_cpu"] == result["gender_real"] %}
+                <div>Gender: {{result["gender_cpu"]}}</div>
+            {% else %}
+                <div class="bg-danger p-1 rounded">Gender: {{result["gender_cpu"]}} Correct: {{ result["gender_real"] }}</div>
+            {% endif %}
+
+            {% if result["age_cpu"] == result["age_real"] %}
+                <div>Age: {{result["age_cpu"]}}</div>
+            {% else %}
+                <div class="bg-danger p-1 rounded">Age: {{result["age_cpu"]}} Correct: {{ result["age_real"] }}</div>
+            {% endif %}
+
+            {% if result["sign_cpu"] == result["sign_real"] %}
+                <div>Sign: {{result["sign_cpu"]}}</div>
+            {% else %}
+                <div class="bg-danger p-1 rounded">Sign: {{result["sign_cpu"]}} Correct: {{ result["sign_real"] }}</div>
+            {% endif %}
+        </div>
+    </div>
+    </div>
+{% endif %}
+
+</div>
+
+<!-- Add a script for handling button clicks and updating form fields -->
+<script>
+    document.getElementById('newQuoteBtn').addEventListener('click', function () {
+    // Make an AJAX request to your Flask server
+    fetch('/get_new_quote')
+        .then(response => response.json())
+        .then(data => {
+            // Update the quote value on the page
+            document.getElementById('quoteValue').innerText = data.new_quote;
+            // Set the value of the hidden input field
+            document.getElementById('quoteInput').value = data.new_quote;
+            document.getElementById('randomInput').value = data.random_index;
+        })
+        .catch(error => console.error('Error:', error));
+    });
+
+    // Function to initialize the quote value on page load
+    function initializeQuote() {
+        // Make an initial AJAX request to get the quote value
+        fetch('/get_new_quote')
+            .then(response => response.json())
+            .then(data => {
+                // Update the quote value on the page
+                document.getElementById('quoteValue').innerText = data.new_quote;
+                // Set the value of the hidden input field
+                document.getElementById('quoteInput').value = data.new_quote;
+                document.getElementById('randomInput').value = data.random_index;
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    // Call the initialization function when the page loads
+    document.addEventListener('DOMContentLoaded', initializeQuote);
+
+    function selectGender(value, btnId) {
+        document.getElementById('genderInput').value = value;
+        highlightButton(btnId, 'Gender');
+    }
+
+    function selectAge(value, btnId) {
+        document.getElementById('ageInput').value = value;
+        highlightButton(btnId, 'Age');
+    }
+
+    function selectSign(value, btnId) {
+        document.getElementById('signInput').value = value;
+        highlightButton(btnId, 'Sign');
+    }
+
+    function highlightButton(btnId, category) {
+        // Remove highlighting from all buttons in the same category
+        let button_class = "";
+
+        switch (category) {
+            case "Gender":
+                button_class = "btn-primary";
+                break;
+
+            case "Age":
+                button_class = "btn-secondary";
+                break;
+
+            case "Sign":
+                button_class = "btn-info";
+                break;
+
+            // Add more cases if needed
+
+            default:
+                // Default case, handle if category doesn't match any of the above
+                break;
+        }
+
+
+        var categoryBtns = document.querySelectorAll('[onclick^="select' + category + '("]');
+        categoryBtns.forEach(btn => {
+            if (btn.id !== btnId) {
+                btn.classList.remove('btn-success');
+                btn.classList.add(button_class);
+            }
+        });
+
+        // Add highlighting to the clicked button
+        document.getElementById(btnId).classList.remove(button_class);
+        document.getElementById(btnId).classList.add('btn-success');
+    }
+</script>
+
+<!-- Model is not stored in a file-->
+{% if status_code == 2 %}
+    <script>
+        // Use JavaScript to display the alert
+        alert("Model not available");
+    </script>
+{% endif %}
+</div>
+
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>
+</body>
+</html>

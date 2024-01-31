@@ -28,10 +28,11 @@ def main():
     # Change the configuration here, you can also generate configurations as a dict
     configuration = \
         {
-            "model_name": "LR-C05-SAGA-df_5_sublin",
+            "model_name": "LR-C05-SAGA-df_5-09_sublin-max_no",
             "column": "age",
             "max_rows": 681284,
-            "sklearn_steps": [TfidfVectorizer(max_features=50000, min_df=5, sublinear_tf=True), LogisticRegression(C=0.5, max_iter=1000, n_jobs=18, solver='saga')],
+            "sklearn_steps": [TfidfVectorizer(max_df=0.9, min_df=5, sublinear_tf=True),
+                              LogisticRegression(C=0.5, max_iter=1000, n_jobs=18, solver='saga')],
             "test_split_percentage": 0.2,
             "shuffle": True,
             "shuffle_state": 41236451,
@@ -53,32 +54,23 @@ def main():
 
     configurations = [
         {
-            "model_name": "LR-C05-SAGA-df_5_sublin",
-            "sklearn_steps": [TfidfVectorizer(max_features=50000, min_df=5, sublinear_tf=True),
+            "model_name": "LR-C05-SAGA-df_5-09_sublin-max_no",
+            "sklearn_steps": [TfidfVectorizer(min_df=5, max_df=0.9, sublinear_tf=True),
                               LogisticRegression(max_iter=1000, C=0.5, n_jobs=18, solver="saga")],
         },
         {
-            "model_name": "LR-C05-SAGA-df_01_sublin",
-            "sklearn_steps": [TfidfVectorizer(max_features=50000, min_df=0.1, sublinear_tf=True),
+            "model_name": "LR-C05-SAGA-df_5-09_sublin-max_no",
+            "sklearn_steps": [TfidfVectorizer(min_df=6, max_df=0.9, sublinear_tf=True),
                               LogisticRegression(max_iter=1000, C=0.5, n_jobs=18, solver="saga")],
         },
         {
-            "model_name": "LR-C05-SAGA-df_02_sublin",
-            "sklearn_steps": [TfidfVectorizer(max_features=50000, min_df=0.1, sublinear_tf=True),
+            "model_name": "LR-C05-SAGA-df_5-09_sublin-max_no",
+            "sklearn_steps": [TfidfVectorizer(min_df=7, max_df=0.9, sublinear_tf=True),
                               LogisticRegression(max_iter=1000, C=0.5, n_jobs=18, solver="saga")],
         }
     ]
 
-    # show_best_model(*find_best_model(preprocess_config, configurations, ComparisonAttribute.PRECISION, export=True))
-
-    #a = full_pipeline(**configuration)
-    #print(a)
-
-    # start pipeline with configuration
-    # evaluation, states = training_pipeline(**configuration)
-
-    # log(evaluation, color=PrintColors.CYAN, exec_time=False)
-    # log(states, color=PrintColors.CYAN, exec_time=False)
+    #show_best_model(*find_best_model(preprocess_config, configurations, ComparisonAttribute.PRECISION, export=True))
 
     LOGGER.log("Finished program")
 

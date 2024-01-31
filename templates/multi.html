@@ -18,10 +18,10 @@
 
     <div class="collapse navbar-collapse" id="navbarsExampleDefault">
         <ul class="navbar-nav mr-auto">
-            <li class="nav-item active">
+            <li>
                 <a class="nav-link" href="/">Single <span class="sr-only">(current)</span></a>
             </li>
-            <li>
+            <li class="nav-item active">
                 <a class="nav-link" href="/multi">Multiclass <span class="sr-only">(current)</span></a>
             </li>
             <li>
@@ -36,18 +36,10 @@
 <br/>
 <div class="container">
 
-    <form method="POST" action="/single">
+    <form method="POST" action="/multi">
         <div class="form-group">
             <label>Your Text</label>
             <textarea type="text" rows="5" cols="5" class="form-control"  name="rawtext" required="true">{{raw_text}}</textarea>
-            <br/>
-            <label>Choose the category which should be predicted</label>
-            <select class="form-control" name="model_option">
-                <option value="gender">Gender</option>
-                <option value="age">Age</option>
-                <option value="sign">Sign</option>
-
-            </select>
             <br/>
             <button type="submit" class="btn btn-info"><i class="fa fa-database"></i> Submit</button>
 
@@ -56,31 +48,58 @@
 </div>
 
 <!--Prediction is available-->
-{% if status_code == 0 %}
-<div class="container">
-    <div class="alert alert-success" role="alert">
-        <p class="alert-heading">Result</p>
-        <h1>Chosen Model: {{model_option}}</h1>
-        <p>Prediction: {{result}}</p>
-        <h2>Probabilities: </h2>
-        <ul>{% for i in probabilities.items() %}
-            <li>{{i[0]}} ({{i[1]}}%)</li>
-            {%endfor %}</ul>
+{% if status_code == 1 %}
+    <div class="container">
+    <div class="d-flex flex-row">
 
+    <div class="p-2">
+        <div class="alert alert-success" role="alert">
+            <p class="alert-heading">Result</p>
+            <h1>Gender</h1>
+            <p>Prediction: {{result["gender"][0]}}</p>
+            <h2>Probabilities: </h2>
+            <ul>{% for i in result["gender"][1].items() %}
+                <li>{{i[0]}} ({{i[1]}}%)</li>
+            {%endfor %}</ul>
+        </div>
     </div>
-    {% endif %}
+    <div class="p-2">
+        <div class="alert alert-success" role="alert">
+            <p class="alert-heading">Result</p>
+            <h1>Age</h1>
+            <p>Prediction: {{result["age"][0]}}</p>
+            <h2>Probabilities: </h2>
+            <ul>{% for i in result["age"][1].items() %}
+                <li>{{i[0]}} ({{i[1]}}%)</li>
+            {%endfor %}</ul>
+        </div>
+    </div>
+    <div class="p-2">
+        <div class="alert alert-success" role="alert">
+            <p class="alert-heading">Result</p>
+            <h1>Sign</h1>
+            <p>Prediction: {{result["sign"][0]}}</p>
+            <h2>Probabilities: </h2>
+            <ul>{% for i in result["sign"][1].items() %}
+                <li>{{i[0]}} ({{i[1]}}%)</li>
+            {%endfor %}</ul>
+        </div>
+    </div>
+    </div>
+{% endif %}
+
 
 <!-- Model is not stored in a file-->
-    {% if status_code == 2 %}
+{% if status_code == 2 %}
     <script>
         // Use JavaScript to display the alert
         alert("Model not available");
     </script>
-    {% endif %}
+{% endif %}
 </div>
 
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut" crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>
 </body>
 </html>
