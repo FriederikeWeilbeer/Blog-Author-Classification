@@ -19,7 +19,6 @@ CONFIG_KEYS = {
 }
 
 
-
 class ComparisonAttribute(Enum):
     ACCURACY = 'accuracy'
     RECALL = 'recall'

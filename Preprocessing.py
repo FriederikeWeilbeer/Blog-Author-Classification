@@ -47,12 +47,25 @@ def normalize_data(dataframe, target_column, desired_count):
 
 
 def normalize_data_2d(dataframe, column1, column2):
+    """
+    Function for normalizing data over two columns
+
+    :param dataframe: dataframe to normalize
+    :param column1: first column to normalize
+    :param column2: second column to normalize
+    :return: normalized dataframe
+    """
+
+    # get min frequency of a label in first column
     min_value_col1 = min(dataframe[column1].value_counts())
+
+    # normalize data in first column
     first_column = normalize_data(dataframe, column1, min_value_col1)
 
     splitted = [group_df for _, group_df in first_column.groupby(column1)]
     min_value = min(first_column.groupby(column1)[column2].value_counts())
 
+    # normalize data for second column depending on first column
     result = pd.DataFrame()
     for age_df_split in splitted:
         norm_gen = normalize_data(age_df_split, column2, min_value)
@@ -66,7 +79,10 @@ def normalize_data_2d(dataframe, column1, column2):
 
 def map_to_age_group(age):
     """
-    Function for converting age to an age. group
+    Function for converting age to an age group
+
+    :param age: age in years
+    :return: age group
     """
     if 10 <= age < 20:
         return '10s'

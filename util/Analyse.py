@@ -13,8 +13,10 @@ def analyse_distribution(prefix, data_frame, columns, overlapping):
     """
     Function analysing distribution of values in a column of a dataframe
 
+    :param prefix: prefix for the filename
     :param data_frame: dataframe to analyse
     :param columns: an array of columns to analyse
+    :param overlapping: data for overlapping distribution bars
     """
     for column in columns:
         if column in data_frame.columns:
@@ -27,8 +29,11 @@ def build_distribution_graph(prefix, data_frame, column, overlapping):
     """
     Function for building a distribution graph
 
+    :param prefix: prefix for the filename
     :param data_frame: dataframe to analyse
     :param column: a column to analyse
+    :param overlapping: data for overlapping distribution bars
+
     """
 
     # Get the frequency distribution of every value
@@ -103,6 +108,15 @@ def build_distribution_graph(prefix, data_frame, column, overlapping):
 
 
 def show_confusion_matrix(y_test, y_pred, model_name, column):
+    """
+    Function for showing confusion matrix
+
+    :param y_test: test labels
+    :param y_pred: predicted labels
+    :param model_name: name of the model
+    :param column: a column to analyse
+    """
+
     # get labels of the data for plot
     unique_labels = sorted(set(y_test))
 
@@ -133,6 +147,12 @@ def show_confusion_matrix(y_test, y_pred, model_name, column):
 
 
 def output_evaluation(evaluation_result, filename):
+    """
+    Function for exporting evaluation to a csv
+
+    :param evaluation_result: an EvaluationResult object for output
+    :param filename: name of the csv file
+    """
 
     eval_dict = evaluation_result.state
     eval_dict.update(evaluation_result.evaluation.get_metrics())

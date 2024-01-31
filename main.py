@@ -25,14 +25,15 @@ def main():
 
     LOGGER.log("Start")
 
-    # Change the configuration here, you can also generate configurations as a dict
+    # Configuration for exporting the Model
+    # Copy the best model output from the console into below and set generate_model to True
     configuration = \
         {
-            "model_name": "LR-C05-SAGA-df_5-09_sublin-max_no",
-            "column": "age",
+            "model_name": "LR-C05-SAGA-tfidf_base",
+            "column": "gender",
             "max_rows": 681284,
-            "sklearn_steps": [TfidfVectorizer(max_df=0.9, min_df=5, sublinear_tf=True),
-                              LogisticRegression(C=0.5, max_iter=1000, n_jobs=18, solver='saga')],
+            "sklearn_steps": [TfidfVectorizer(min_df=5, max_df=0.9, sublinear_tf=True),
+                              LogisticRegression(C=0.5, max_iter=1000, n_jobs=14, solver='saga')],
             "test_split_percentage": 0.2,
             "shuffle": True,
             "shuffle_state": 41236451,
@@ -42,40 +43,44 @@ def main():
             "overwrite": False
         }
 
-    # export model -> Remove comment
+    # export model
     full_pipeline(**configuration)
 
+    # preprocess config for multiple model training -> So the preprocessing isnt done each turn
     preprocess_config = {
         "max_rows": COMPLETE_DATA_LENGTH,
         "normalize_data": False,
-        "column": "age",
+        "column": "gender",
         "evaluate_dist": True
     }
 
+    # list of configurations for training and testing against each other
     configurations = [
         {
             "model_name": "LR-C05-SAGA-df_5-09_sublin-max_no",
-            "sklearn_steps": [TfidfVectorizer(min_df=5, max_df=0.9, sublinear_tf=True),
-                              LogisticRegression(max_iter=1000, C=0.5, n_jobs=18, solver="saga")],
+            "sklearn_steps": [TfidfVectorizer(max_df=0.9, min_df=5, sublinear_tf=True),
+                              LogisticRegression(C=0.5, max_iter=1000, n_jobs=18, solver='saga')],
         },
         {
             "model_name": "LR-C05-SAGA-df_5-09_sublin-max_no",
-            "sklearn_steps": [TfidfVectorizer(min_df=6, max_df=0.9, sublinear_tf=True),
-                              LogisticRegression(max_iter=1000, C=0.5, n_jobs=18, solver="saga")],
+            "sklearn_steps": [TfidfVectorizer(max_df=0.9, min_df=5, sublinear_tf=True),
+                              LogisticRegression(C=0.5, max_iter=1000, n_jobs=18, solver='saga')],
         },
-        {
-            "model_name": "LR-C05-SAGA-df_5-09_sublin-max_no",
-            "sklearn_steps": [TfidfVectorizer(min_df=7, max_df=0.9, sublinear_tf=True),
-                              LogisticRegression(max_iter=1000, C=0.5, n_jobs=18, solver="saga")],
-        }
     ]
 
-    #show_best_model(*find_best_model(preprocess_config, configurations, ComparisonAttribute.PRECISION, export=True))
+    # start find best model and show the results
+    show_best_model(*find_best_model(preprocess_config, configurations, ComparisonAttribute.PRECISION, export=True))
 
     LOGGER.log("Finished program")
 
 
 def show_best_model(best_key, results):
+    """
+    Function for showing the best model in the console
+
+    :param best_key: the key of the best model in the result dict
+    :param results: a dict with all the results as EvalauationResults
+    """
     best = results[best_key]
 
     model_string = f'Best Model is: Model [{best_key}] {best.state["model_name"]}'
@@ -92,8 +97,10 @@ def find_best_model(preprocess_config, configurations, optimization=ComparisonAt
     :param preprocess_config: list of configurations for preprocessing data
     :param configurations: list of configurations for training on data
     :param optimization: Comparison attribute for the evaluation (default: ComparisonAttribute.ABSOLUTE)
+    :param export: If the evaluation should be exported to a csv file (default: False)
     """
 
+    # default config if config item was not given
     default_config = {
         "sklearn_steps": [TfidfVectorizer(), LogisticRegression(max_iter=1000)],
         "test_split_percentage": 0.2,
@@ -102,12 +109,14 @@ def find_best_model(preprocess_config, configurations, optimization=ComparisonAt
         "model_name": "NO_NAME"
     }
 
+    # fixed config values for overwriting
     fixed_values = {
         "evaluate": True,
         "generate_model": False,
         "overwrite": True
     }
 
+    # preprocess the data
     data = preprocess_pipeline(**preprocess_config)
 
     results = dict()
@@ -128,16 +137,18 @@ def find_best_model(preprocess_config, configurations, optimization=ComparisonAt
             else:
                 config[key] = value
 
+        # add preprocessing config to complete config
         config.update(preprocess_config)
+
+        # add data to config
         config["data"] = data
 
-        # call training pipeline with configuration
-        # ** is used to convert the dict into multiple params, which the training_pipeline() method requires
-        # the output of training_pipeline() is an Evaluation Object and the state
-        # a EvaluationResult is generated by passing the output of training_pipeline()
-        # and converting it to two parameters of the EvaluationResult constructor with the * operator
-
         try:
+            # call training pipeline with configuration
+            # ** is used to convert the dict into multiple params, which the training_pipeline() method requires
+            # the output of training_pipeline() is an Evaluation Object and the state
+            # a EvaluationResult is generated by passing the output of training_pipeline()
+            # and converting it to two parameters of the EvaluationResult constructor with the * operator
             result = EvaluationResult(*training_pipeline(**config))
 
             # change the compare attribute for comparing evaluations
@@ -147,6 +158,7 @@ def find_best_model(preprocess_config, configurations, optimization=ComparisonAt
             results[i] = result
 
             if export:
+                # export evaluation to csv
                 Analyse.output_evaluation(result, preprocess_config["column"])
 
             LOGGER.log(f'Finished Model with state: {result.state}', color=PrintColors.BLUE)
@@ -170,12 +182,39 @@ def full_pipeline(model_name,
                   generate_model=False,
                   overwrite=True
                   ):
+    """
+    Complete Pipeline for exporting a model
+
+    :param model_name: Name of the model
+    :param column: column of dataframe which should be trained
+    :param max_rows: max rows for import
+    :param sklearn_steps: steps for the sklearn model pipeline
+    :param normalize_data: whether to normalize the data in preprocessing
+    :param test_split_percentage: percentage of test data
+    :param shuffle: flag for shuffling data
+    :param shuffle_state: state to reproducing the shuffle process
+    :param evaluate: flag if the model should be evaluated (default: False)
+    :param evaluate_dist: flag if a distribution should be generated (default: False)
+    :param generate_model: flag if a model output should be generated (default: False)
+    :param overwrite: flag for overwriting existing data (default: True)
+    :return: An Evaluation object for the training pipeline and the state or None if evaluate is False
+    """
     data = preprocess_pipeline(max_rows, column, normalize_data, evaluate_dist)
     return training_pipeline(model_name, data, column, max_rows, sklearn_steps, normalize_data, test_split_percentage,
                              shuffle, shuffle_state, evaluate, evaluate_dist, generate_model, overwrite)
 
 
 def preprocess_pipeline(max_rows, column, normalize_data, evaluate_dist=False):
+    """
+    Complete Pipeline for exporting a model
+
+    :param max_rows: max rows for import
+    :param column: column of dataframe which should be trained
+    :param normalize_data: whether to normalize the data in preprocessing
+    :param evaluate_dist: flag if a distribution should be generated (default: False)
+    :return: preprocessed dataframe
+    """
+
     # Step 1: Import data
     data = Preprocessing.import_data(FILE_PATH, int(max_rows))
     LOGGER.log("Finished importing")
@@ -216,10 +255,12 @@ def training_pipeline(model_name,
     """
     Function for the training pipeline
 
-    :param data:
+    :param model_name: name of the model
+    :param data: preprocessed data as a dataframe
     :param column: column of dataframe which should be trained
     :param max_rows: max rows for import
     :param sklearn_steps: steps for the sklearn model pipeline
+    :param normalize_data: whether to normalize the data in preprocessing
     :param test_split_percentage: percentage of test data
     :param shuffle: flag for shuffling data
     :param shuffle_state: state to reproducing the shuffle process
@@ -258,6 +299,7 @@ def training_pipeline(model_name,
 
         test_data = pd.DataFrame({column: ytest})
 
+        # show distribution and what percentage was predicted correctly
         Analyse.analyse_distribution(state_vars["model_name"], test_data, [column], result.get_correct_by_category())
 
         return result, state
@@ -330,14 +372,18 @@ def evaluate_model(model, x_test, y_test, model_name, column):
     """
     Function for evaluating the model with test data
 
+    :param model_name: name of the model
     :param model: a trained model
     :param x_test: the test values which should be predicted
-    :param y_test: the correct labels of the test datat
+    :param y_test: the correct labels of the test data
+    :param column: column of dataframe which should be trained
+
     :return: An Evaluation Object
     """
 
     y_pred = model.predict(x_test)
 
+    # show confusion matrix for the test
     Analyse.show_confusion_matrix(y_test, y_pred, model_name, column)
 
     return Evaluation(x_test, y_test, y_pred)
