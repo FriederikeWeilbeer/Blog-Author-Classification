@@ -1,0 +1,36 @@
+@startuml
+!define RECTANGLE class
+!define CONNECTOR ->
+!define IF if
+!define ENDIF endif
+!define ELSE else
+!define STOP stop
+
+|Pipeline|
+start
+:Import Data;
+:Preprocess Data;
+:Split Training Data;
+
+IF (Generate Model?) then (yes)
+  :Train Model;
+
+  IF (Evaluate Model?) then (yes)
+    :Evaluate Model;
+    :Generate Evaluation Metrics;
+  ELSE (no)
+    :Save Model;
+  ENDIF
+
+ELSE (no)
+  IF (Evaluate Model?) then (yes)
+    :Load Existing Model;
+    :Evaluate Model;
+    :Generate Evaluation Metrics;
+  ELSE (no)
+    :No Action;
+  ENDIF
+ENDIF
+
+STOP
+@enduml
